@@ -254,6 +254,24 @@ if (!$showrecreate) {
         $aurl = new moodle_url('/mod/zoom/loadmeeting.php', ['id' => $cm->id]);
         $buttonhtml .= html_writer::input_hidden_params($aurl);
         $link = html_writer::tag('form', $buttonhtml, ['action' => $aurl->out_omit_querystring(), 'target' => '_blank']);
+
+        if (!empty($config->meetingsdkid) && !empty($config->meetingsdksecret)) {
+            $extratext = $userishost ? ' ' . strtolower(get_string('from')) . ' Moodle' : '';
+            $extraclass = $userishost ? ' mt-2' : '';
+            $webmeetinglink = html_writer::tag('a', ($userishost ? $strstart : $btntext) . $extratext,[
+                'href' => new moodle_url('/mod/zoom/webmeeting.php', [
+                    'id' => $cm->id,
+                ]),
+                'class' => 'btn btn-warning' . $extraclass,
+            ]);
+            if ($userishost) {
+                $link .= $webmeetinglink;
+            } else {
+                $link = $webmeetinglink;
+            }
+        }
+
+
     } else {
         // Get unavailability note.
         $unavailabilitynote = zoom_get_unavailability_note($zoom, $finished);
