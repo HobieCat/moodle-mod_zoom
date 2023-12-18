@@ -115,6 +115,9 @@ define('ZOOM_AUTORECORDING_CLOUD', 'cloud');
 define('ZOOM_REGISTRATION_AUTOMATIC', 0);
 define('ZOOM_REGISTRATION_MANUAL', 1);
 define('ZOOM_REGISTRATION_OFF', 2);
+// Meeting SDK for web version.
+// see: https://developers.zoom.us/docs/meeting-sdk/minimum-version/
+define('ZOOM_MEETING_SDK_WEB_VERSION', '2.18.2');
 
 /**
  * Terminate the current script with a fatal error.
@@ -1280,4 +1283,108 @@ function zoom_get_registrant_join_url($useremail, $meetingid, $iswebinar) {
     }
 
     return false;
+}
+
+/**
+ * Generate the signature to be used by the webmeeting.js join call.
+ *
+ * @param stdClass $zoom the zoom object
+ * @param integer $role 0 for student, 1 to start the meeting
+ * @return string the generated signature
+ */
+function zoom_webmeeting_get_signature(stdClass $zoom, int $role = 0) {
+
+    $config = get_config('zoom');
+    $sSignature = null;
+
+    if (!empty($config->meetingsdkid) && !empty($config->meetingsdksecret)) {
+        // issued at...
+        $iat = time() - 30;
+        $exp = $iat + (2 * 60 * 60); // exp 2h later iat
+
+        $header = [
+            'alg' => 'HS256',
+            'typ' => 'JWT',
+        ];
+        $payLoad = [
+            'sdkKey' => $config->meetingsdkid,
+            'mn' => $zoom->meeting_id,
+            'role' => $role,
+            'iat' => $iat,
+            'exp' => $exp,
+            'appKey' => $config->meetingsdkid,
+            'tokenExp' => $exp,
+        ];
+
+        $toSign =
+            urlsafeB64Encode(json_encode($header))
+            . '.' .
+            urlsafeB64Encode(json_encode($payLoad));
+
+
+
+            $signature = hash_hmac('SHA256', $toSign, $config->meetingsdksecret, true);
+            $sSignature = $toSign . '.' . urlsafeB64Encode($signature);
+        }
+    return $sSignature;
+}
+
+/**
+ * base64_encode in URL safe way.
+ *
+ * @param string $string the string to be encoded.
+ * @return string the encoded string.
+ */
+function urlsafeB64Encode($string) {
+    return str_replace('=', '', strtr(base64_encode($string), '+/', '-_'));
+}
+
+/**
+ * sends Cross-Origin Isolation headers to the browser.
+ * see:
+ * https://developers.zoom.us/docs/meeting-sdk/web/gallery-view/#implementing-cross-origin-isolation
+ *
+ * @return void
+ */
+function crossOriginIsolation() {
+    /**
+     * headers Implementing Cross-Origin Isolation
+     */
+    // @header("cross-origin-resource-policy: *");
+    // @header("Cross-Origin-Embedder-Policy: require-corp");
+    @header("Cross-Origin-Embedder-Policy: credentialless");
+    @header("Cross-Origin-Opener-Policy: same-origin");
+}
+
+/**
+ * build the HTML for the CSS and JS files required by zoom meeting sdk.
+ *
+ * @return array css and js
+ */
+function zoom_webmeeting_get_css_js() {
+    $css = array_map(
+        fn ($el) => "<link type='text/css' rel='stylesheet' href='" .
+                    str_replace('{VERSION_NUMBER}', ZOOM_MEETING_SDK_WEB_VERSION, $el).
+                    "' />",
+        [
+            '//source.zoom.us/{VERSION_NUMBER}/css/bootstrap.css',
+            '//source.zoom.us/{VERSION_NUMBER}/css/react-select.css'
+        ]
+    );
+    $js = array_map(
+        fn ($el) => "<script src='".str_replace('{VERSION_NUMBER}', ZOOM_MEETING_SDK_WEB_VERSION, $el)."'></script>",
+        [
+            '//source.zoom.us/{VERSION_NUMBER}/lib/vendor/react.min.js',
+            '//source.zoom.us/{VERSION_NUMBER}/lib/vendor/react-dom.min.js',
+            '//source.zoom.us/{VERSION_NUMBER}/lib/vendor/redux.min.js',
+            '//source.zoom.us/{VERSION_NUMBER}/lib/vendor/redux-thunk.min.js',
+            '//source.zoom.us/{VERSION_NUMBER}/lib/vendor/lodash.min.js',
+            // Choose between the client view or component view:
+            // CDN for client view
+            '//source.zoom.us/zoom-meeting-{VERSION_NUMBER}.min.js',
+            // CDN for component view
+            // '//source.zoom.us/zoom-meeting-embedded-{VERSION_NUMBER}.min.js',
+        ]
+    );
+    return [$css, $js];
 }
