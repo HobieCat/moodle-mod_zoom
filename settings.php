@@ -88,6 +88,23 @@ if ($ADMIN->fulltree) {
     );
     $settings->add($clientsecret);
 
+    $meetingsdkid = new admin_setting_configtext(
+        'zoom/meetingsdkid',
+        get_string('meetingsdkid', 'mod_zoom'),
+        get_string('meetingsdkid_desc', 'mod_zoom'),
+        '',
+        PARAM_ALPHANUMEXT
+    );
+    $settings->add($meetingsdkid);
+
+    $meetingsdksecret = new admin_setting_configpasswordunmask(
+        'zoom/meetingsdksecret',
+        get_string('meetingsdksecret', 'mod_zoom'),
+        get_string('meetingsdksecret_desc', 'mod_zoom'),
+        ''
+    );
+    $settings->add($meetingsdksecret);
+
     $zoomurl = new admin_setting_configtext(
         'zoom/zoomurl',
         get_string('zoomurl', 'mod_zoom'),
