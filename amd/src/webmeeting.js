@@ -111,9 +111,14 @@
             // zak: zakToken
             success: function (joinResp) {
               if (!zoomObj.userishost) {
-                Array.from(document.getElementsByClassName('meeting-info-container--left-side') ?? []).forEach((element) => {
-                  element.style.display = 'none';
-                });
+                Array.from(document.getElementsByClassName('meeting-info-container--left-side') ?? []).forEach(
+                  (el) => {
+                    Array.from(el.childNodes).filter(
+                      (child) => !child.classList.contains('recording-indication__recording-container')
+                    ).forEach(
+                      (el) => { el.style.display = 'none'; }
+                    );
+                  });
               }
               addZoomSessionKeys();
               log("joinResp is ", joinResp);
