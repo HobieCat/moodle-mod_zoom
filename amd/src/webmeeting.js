@@ -59,7 +59,7 @@
       log('init meeting with zoom object', zoomObj);
       log('init meeting with user object', userObj);
       log('Meeting SDK', window.ZoomMtg.getWebSDKVersion());
-      log(window.ZoomMtg.checkFeatureRequirements());
+      log('checkFeatureRequirements', window.ZoomMtg.checkFeatureRequirements());
 
       window.ZoomMtg.init({
         // see: https://marketplacefront.zoom.us/sdk/meeting/web/modules.html#initArgs
@@ -115,10 +115,7 @@
                   element.style.display = 'none';
                 });
               }
-              const addedKeys = getNewSessionKeys(sessionKeys);
-              if (addedKeys.length) {
-                window.sessionStorage.setItem('zoomKeys', addedKeys.join(','));
-              }
+              addZoomSessionKeys();
               log("joinResp is ", joinResp);
             },
             error: function (joinResp) {
@@ -132,18 +129,33 @@
       });
     };
 
+    const addZoomSessionKeys = () => {
+      const addedKeys = getNewSessionKeys(sessionKeys);
+      log("sessionStorage items added by zoom", addedKeys);
+      if (addedKeys.length) {
+        const zoomKeys = (window.sessionStorage.getItem('zoomKeys') ?? '').split(',').filter(el => el.length > 0);
+        addedKeys.forEach((key) => {
+          if (!zoomKeys.includes(key)) {
+            zoomKeys.push(key);
+          }
+        });
+        if (zoomKeys.length > 0) {
+          log('storing zoomKeys', zoomKeys);
+          window.sessionStorage.setItem('zoomKeys', zoomKeys.join(','));
+        } else {
+          log('removing zoomKeys since it was an empty array');
+          window.sessionStorage.removeItem('zoomKeys');
+        }
+      }
+    };
+
     const getSessionKeys = () => {
       let retval = [];
-      Object.keys(window.sessionStorage).forEach(function (key) {
-        retval.push(key);
-      });
+      Object.keys(window.sessionStorage).forEach((key) => retval.push(key));
       return retval;
     };
 
-    const getNewSessionKeys = (startArr) => {
-      let newKeys = getSessionKeys();
-      return newKeys.filter(x => !startArr.includes(x));
-    };
+    const getNewSessionKeys = (startArr) => getSessionKeys().filter(x => !startArr.includes(x));
 
     log('**********************************************');
 
