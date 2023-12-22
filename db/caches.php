@@ -36,4 +36,9 @@ $definitions = [
         'simplekeys' => true,
         'simpledata' => true,
     ],
+    'zaktoken' => [
+        'mode' => cache_store::MODE_SESSION,
+        'simplekeys' => false,
+        'simpledata' => true,
+    ],
 ];
