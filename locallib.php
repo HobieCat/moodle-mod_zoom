@@ -1286,6 +1286,21 @@ function zoom_get_registrant_join_url($useremail, $meetingid, $iswebinar) {
 }
 
 /**
+ * Generate the zak token to create the meeting.
+ *
+ * @return string|null the token
+ */
+function zoom_meeting_get_host_zak() {
+    try {
+        $token = zoom_webservice()->get_host_zak_token();
+    } catch (moodle_exception $e) {
+        $token = null;
+    }
+    return $token;
+}
+
+
+/**
  * Generate the signature to be used by the webmeeting.js join call.
  *
  * @param stdClass $zoom the zoom object
