@@ -1198,4 +1198,34 @@ class webservice {
         $response = $this->make_call($url);
         return $response;
     }
+
+    /**
+     * Returns a zak token, good for 2 hours.
+     * see: https://developers.zoom.us/docs/meeting-sdk/auth/#start-meetings-and-webinars-with-a-zoom-users-zak-token
+     *
+     * @throws moodle_exception
+     * @return string zak token
+     */
+    public function get_host_zak_token() {
+        // Get the Zoom id of the currently logged-in user.
+        $zoomuser = zoom_get_user_id(true);
+        $expiresin = 120 * 60; // 2 hours
+        $cache = cache::make('mod_zoom', 'zaktoken');
+        $token = $cache->get('zaktoken-' . $zoomuser);
+        $expires = $cache->get('expires-' . $zoomuser);
+        if (empty($token) || empty($expires) || time() >= $expires) {
+            // generate the zak with a rest api call
+            $token = null;
+            $url = "users/$zoomuser/token?type=zak";
+            $response = $this->make_call($url);
+            if (property_exists($response, 'token') && !empty($response->token)) {
+                $token = $response->token;
+                $cache->set_many([
+                    'zaktoken-' . $zoomuser => $token,
+                    'expires-' . $zoomuser => time() + $expiresin,
+                ]);
+            }
+        }
+        return $token;
+    }
 }
