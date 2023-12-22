@@ -108,7 +108,7 @@
             // password optional; set by Host
             passWord: zoomObj.password,
             // tk: registrantToken,
-            // zak: zakToken
+            zak: zoomObj.zak,
             success: function (joinResp) {
               if (!zoomObj.userishost) {
                 Array.from(document.getElementsByClassName('meeting-info-container--left-side') ?? []).forEach(

@@ -29,6 +29,7 @@ require_once(__DIR__ . '/locallib.php');
 
 $meetingcontent = (bool) optional_param('meetingcontent', false, PARAM_BOOL);
 $zoomLeave = (bool) optional_param('zoomLeave', false, PARAM_BOOL);
+$showrecreate = false;
 
 /**
  * @var \moodle_page $PAGE
@@ -58,6 +59,29 @@ if (!$meetingcontent) {
     $alternativehosts = zoom_get_alternative_host_array_from_string($zoom->alternative_hosts);
     // Check if this user is the host or an alternative host.
     $userishost = ($userisrealhost || in_array(zoom_get_api_identifier($USER), $alternativehosts, true));
+    $showrecreate = false;
+    if ($zoom->exists_on_zoom == ZOOM_MEETING_EXPIRED) {
+        $showrecreate = true;
+    } else {
+        try {
+            zoom_webservice()->get_meeting_webinar_info($zoom->meeting_id, $zoom->webinar);
+        } catch (\mod_zoom\webservice_exception $error) {
+            $showrecreate = zoom_is_meeting_gone_error($error);
+
+            if ($showrecreate) {
+                // Mark meeting as expired.
+                $updatedata = new stdClass();
+                $updatedata->id = $zoom->id;
+                $updatedata->exists_on_zoom = ZOOM_MEETING_EXPIRED;
+                $DB->update_record('zoom', $updatedata);
+
+                $zoom->exists_on_zoom = ZOOM_MEETING_EXPIRED;
+            }
+        } catch (moodle_exception $error) {
+            // Ignore other exceptions.
+            debugging($error->getMessage());
+        }
+    }
 
     $PAGE->set_title(format_string($zoom->name));
     $PAGE->set_heading(format_string($course->fullname));
@@ -72,7 +96,8 @@ if ($zoomLeave) {
 
     crossOriginIsolation();
 
-    $js[] = html_writer::tag('script',
+    $js[] = html_writer::tag(
+        'script',
         'window.parent.postMessage({
             "message" : "zoomLeave",
             "redirect" : "' . (new moodle_url('/mod/zoom/view.php', ['id' => $cm->id]))->out() . '",
@@ -87,8 +112,7 @@ if ($zoomLeave) {
     include(__DIR__ . '/zoom-clientview.php');
     $outhtml = ob_get_contents();
     ob_end_clean();
-
-} else if (!$zoomLeave && $available && !$finished) {
+} else if (!$zoomLeave && !$showrecreate && $available && !$finished) {
 
     crossOriginIsolation();
 
@@ -102,17 +126,18 @@ if ($zoomLeave) {
 
         [$css, $js] = zoom_webmeeting_get_css_js();
 
-        $css[] = html_writer::tag('style',
-        'html, body { min-width: 0 !important; }
+        $css[] = html_writer::tag(
+            'style',
+            'html, body { min-width: 0 !important; }
         #zmmtg-root {
         display: none;
-        min-width: 0 !important;}');
+        min-width: 0 !important;}'
+        );
 
         $js[] = html_writer::tag('script', '', [
             'src' => debugging() ?
                 new moodle_url('/mod/zoom/amd/src/webmeeting.js') :
-                new moodle_url('/mod/zoom/amd/build/webmeeting.min.js')
-            ,
+                new moodle_url('/mod/zoom/amd/build/webmeeting.min.js'),
         ]);
 
         $head = implode(PHP_EOL . "\t", $css);
@@ -122,7 +147,6 @@ if ($zoomLeave) {
         include(__DIR__ . '/zoom-clientview.php');
         $outhtml = ob_get_contents();
         ob_end_clean();
-
     } else {
 
         $PAGE->requires->css('/mod/zoom/css/webmeeting.css');
@@ -145,6 +169,7 @@ if ($zoomLeave) {
                     'sdkKey' => $config->meetingsdkid ?? 0,
                     'meeting_id' => $zoom->meeting_id,
                     'password' => $zoom->password,
+                    'zak' => ($userishost ? zoom_meeting_get_host_zak() : null),
                     'leaveUrl' => (new moodle_url('/mod/zoom/webmeeting.php', ['id' => $cm->id, 'zoomLeave' => 1, 'meetingcontent' => 1]))->out(),
                 ], JSON_HEX_QUOT) . ',
                     "user" : ' . json_encode([
@@ -153,7 +178,7 @@ if ($zoomLeave) {
                     'lang' => $USER->lang,
                 ], JSON_HEX_QUOT) . ',
                     "zoomSdkVersion" : "' . ZOOM_MEETING_SDK_WEB_VERSION . '",
-                    "debugging" : ' . (debugging() ? 'true' : 'false') .',
+                    "debugging" : ' . (debugging() ? 'true' : 'false') . ',
                 });',
                 'src' => new moodle_url('/mod/zoom/webmeeting.php', ['id' => $cm->id, 'meetingcontent' => 1]),
                 'id' => 'meetingSDKElement',
@@ -164,11 +189,21 @@ if ($zoomLeave) {
                 'allowtransparency' => 'true',
                 'allowfullscreen' => 'true',
                 'allow' => 'camera; microphone;',
-                'sandbox'=> 'allow-forms allow-scripts allow-same-origin',
+                'sandbox' => 'allow-forms allow-scripts allow-same-origin',
             ]
         );
         $outhtml = html_writer::div($iframe, 'iframe-container');
     }
+} else if ($showrecreate) {
+    // Only show recreate/delete links in the message for users that can edit.
+    if ($iszoommanager) {
+        $message = get_string('zoomerr_meetingnotfound', 'mod_zoom', zoom_meetingnotfound_param($cm->id));
+        $style = \core\output\notification::NOTIFY_ERROR;
+    } else {
+        $message = get_string('zoomerr_meetingnotfound_info', 'mod_zoom');
+        $style = \core\output\notification::NOTIFY_WARNING;
+    }
+    $outhtml = $OUTPUT->notification($message, $style);
 } else {
     // Get unavailability note.
     $unavailabilitynote = zoom_get_unavailability_note($zoom, $finished);
