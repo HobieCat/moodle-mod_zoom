@@ -229,7 +229,7 @@ if (!$showrecreate && $config->showcapacitywarning == true) {
 if (!$showrecreate) {
     // If registration is required, check the registration.
     if (!$userishost && $zoom->registration != ZOOM_REGISTRATION_OFF) {
-        $userisregistered = zoom_is_user_registered_for_meeting($USER->email, $zoom->meeting_id, $zoom->webinar);
+        $userisregistered = $zoom->autoregister_user || zoom_is_user_registered_for_meeting($USER->email, $zoom->meeting_id, $zoom->webinar);
 
         // Unregistered users are allowed to register.
         if (!$userisregistered) {
