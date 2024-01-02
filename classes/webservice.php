@@ -1236,4 +1236,25 @@ class webservice {
         }
         return $token;
     }
+
+    /**
+     * Adds the logged in moodle user to meeting registrants.
+     *
+     * @param stdClass $zoom The zoom meeting.
+     * @return stdClass|null registrant data or null
+     */
+    public function add_registrant($zoom) {
+        global $USER;
+
+        if ($zoom->autoregister_user) {
+            $url = 'meetings/' . $zoom->meeting_id . '/registrants';
+            $data = [
+                'first_name' => $USER->firstname,
+                'last_name' => $USER->lastname,
+                'email' => $USER->email,
+            ];
+            return $this->make_call($url, $data, 'post');
+        }
+        return null;
+    }
 }
