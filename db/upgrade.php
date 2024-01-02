@@ -933,5 +933,26 @@ function xmldb_zoom_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2023111600, 'zoom');
     }
 
+    if ($oldversion < 2023122800) {
+
+        // Start zoom table modifications.
+        $table = new xmldb_table('zoom');
+
+        // Define and conditionally add field registrants_email_notification.
+        $field = new xmldb_field('registrants_email_notification', XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'registration');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Define and conditionally add field registrants_confirmation_email.
+        $field = new xmldb_field('registrants_confirmation_email', XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'registrants_email_notification');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Zoom savepoint reached.
+        upgrade_mod_savepoint(true, 2023122800, 'zoom');
+    }
+
     return true;
 }

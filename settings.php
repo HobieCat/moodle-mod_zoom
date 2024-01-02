@@ -413,6 +413,22 @@ if ($ADMIN->fulltree) {
     );
     $settings->add($defaultregistration);
 
+    $defaultregistrants_email_notification = new admin_setting_configcheckbox(
+        'zoom/defaultregistrants_email_notification',
+        get_string('registrants_email_notification', 'mod_zoom'),
+        get_string('registrants_email_notification_help', 'mod_zoom'),
+        0,
+    );
+    $settings->add($defaultregistrants_email_notification);
+
+    $defaultregistrants_confirmation_email = new admin_setting_configcheckbox(
+        'zoom/defaultregistrants_confirmation_email',
+        get_string('registrants_confirmation_email', 'mod_zoom'),
+        get_string('registrants_confirmation_email_help', 'mod_zoom'),
+        0,
+    );
+    $settings->add($defaultregistrants_confirmation_email);
+
     $defaultrequirepasscode = new admin_setting_configcheckbox(
         'zoom/requirepasscode',
         get_string('requirepasscode', 'mod_zoom'),

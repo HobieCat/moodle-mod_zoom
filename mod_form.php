@@ -409,6 +409,27 @@ class mod_zoom_mod_form extends moodleform_mod {
         $mform->addHelpButton('registration', 'registration', 'mod_zoom');
         $mform->hideIf('registration', 'recurrence_type', 'eq', ZOOM_RECURRINGTYPE_NOTIME);
 
+        $mform->addElement(
+            'advcheckbox',
+            'registrants_email_notification',
+            get_string('registrants_email_notification', 'zoom'),
+            get_string('registrants_email_notification', 'zoom')
+        );
+        $mform->setDefault('registrants_email_notification', $config->registrants_email_notification);
+        $mform->addHelpButton('registrants_email_notification', 'registrants_email_notification', 'mod_zoom');
+        $mform->hideIf('registrants_email_notification', 'registration', 'eq', ZOOM_REGISTRATION_OFF);
+
+        $mform->addElement(
+            'advcheckbox',
+            'registrants_confirmation_email',
+            get_string('registrants_confirmation_email', 'zoom'),
+            get_string('registrants_confirmation_email', 'zoom')
+        );
+        $mform->setDefault('registrants_confirmation_email', $config->registrants_confirmation_email);
+        $mform->addHelpButton('registrants_confirmation_email', 'registrants_confirmation_email', 'mod_zoom');
+        $mform->hideIf('registrants_confirmation_email', 'registration', 'eq', ZOOM_REGISTRATION_OFF);
+
+
         // Adding the "breakout rooms" fieldset.
         $mform->addElement('header', 'breakoutrooms', get_string('breakoutrooms', 'mod_zoom'));
         $mform->setExpanded('breakoutrooms');

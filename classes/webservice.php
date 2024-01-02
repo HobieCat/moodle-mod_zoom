@@ -617,6 +617,14 @@ class webservice {
             $data['settings']['approval_type'] = $zoom->registration;
         }
 
+        if (isset($zoom->registrants_email_notification)) {
+            $data['settings']['registrants_email_notification'] = (bool) $zoom->registrants_email_notification;
+        }
+
+        if (isset($zoom->registrants_confirmation_email)) {
+            $data['settings']['registrants_confirmation_email'] = (bool) $zoom->registrants_confirmation_email;
+        }
+
         if (!empty($zoom->webinar)) {
             if ($zoom->recurring) {
                 if ($zoom->recurrence_type == ZOOM_RECURRINGTYPE_NOTIME) {
