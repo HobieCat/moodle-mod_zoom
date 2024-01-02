@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/zoom/db" VERSION="20231116" COMMENT="Zoom module"
+<XMLDB PATH="mod/zoom/db" VERSION="20240102" COMMENT="Zoom module"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -185,6 +185,24 @@
         <KEY NAME="id_primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="fk_breakoutroomid" TYPE="foreign" FIELDS="breakoutroomid" REFTABLE="zoom_meeting_breakout_rooms" REFFIELDS="id"/>
       </KEYS>
+    </TABLE>
+    <TABLE NAME="zoom_registrants" COMMENT="Zoom meeting or webinar registrants.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Moodle userid of the registrant."/>
+        <FIELD NAME="zoomid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="link to mdl_zoom table."/>
+        <FIELD NAME="meeting_id" TYPE="int" LENGTH="15" NOTNULL="false" SEQUENCE="false" COMMENT="Zoom meeting/webinar id."/>
+        <FIELD NAME="registrant_id" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Zoom registrant id."/>
+        <FIELD NAME="registrant_token" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Zoom registrant token."/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_zoomregistant_userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id" COMMENT="Zoom registrant userid foreign key."/>
+        <KEY NAME="fk_zoomregistant_zoomid" TYPE="foreign" FIELDS="zoomid" REFTABLE="zoom" REFFIELDS="id" COMMENT="Zoom registrant foreing key to mdl_zoom."/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="idx_registrant" UNIQUE="true" FIELDS="userid, meeting_id" COMMENT="Zoom registrant index."/>
+      </INDEXES>
     </TABLE>
   </TABLES>
 </XMLDB>

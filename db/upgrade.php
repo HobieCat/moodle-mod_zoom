@@ -969,5 +969,36 @@ function xmldb_zoom_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2024010200, 'zoom');
     }
 
+    if ($oldversion < 2024010201) {
+
+        // Define table zoom_registrants to be created.
+        $table = new xmldb_table('zoom_registrants');
+
+        // Adding fields to table zoom_registrants.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('zoomid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('meeting_id', XMLDB_TYPE_INTEGER, '15', null, null, null, null);
+        $table->add_field('registrant_id', XMLDB_TYPE_CHAR, '255', null, null, null, null);
+        $table->add_field('registrant_token', XMLDB_TYPE_CHAR, '255', null, null, null, null);
+
+        // Adding keys to table zoom_registrants.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('fk_zoomregistant_userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+        $table->add_key('fk_zoomregistant_zoomid', XMLDB_KEY_FOREIGN, ['zoomid'], 'zoom', ['id']);
+
+        // Adding indexes to table zoom_registrants.
+        $table->add_index('idx_registrant', XMLDB_INDEX_UNIQUE, ['userid', 'meeting_id']);
+
+        // Conditionally launch create table for zoom_registrants.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Zoom savepoint reached.
+        upgrade_mod_savepoint(true, 2024010201, 'zoom');
+    }
+
+
     return true;
 }
