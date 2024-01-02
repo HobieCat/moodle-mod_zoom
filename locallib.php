@@ -1403,3 +1403,46 @@ function zoom_webmeeting_get_css_js() {
     );
     return [$css, $js];
 }
+
+/**
+ * Gets the registrant token for the logged in user, adding the user to zoom registrants if needed.
+ *
+ * @param stdClass $zoom The zoom meeting.
+ * @return string|null The registrant token.
+ */
+function get_registrant_tk($zoom) {
+    /** @var \moodle_database $DB */
+    global $DB, $USER;
+
+    $tk = $DB->get_field_select(
+        'zoom_registrants',
+        'registrant_token',
+        'userid = :userid AND zoomid = :zoomid',
+        [
+            'userid' => $USER->id,
+            'zoomid' => $zoom->id,
+        ]
+    );
+
+    if ($tk === false) {
+        $tk = null;
+        $registrant = zoom_webservice()->add_registrant($zoom);
+        if ($registrant && property_exists($registrant, 'join_url')) {
+            parse_str(parse_url($registrant->join_url, PHP_URL_QUERY), $query);
+            $tk = $query['tk'] ?? null;
+        }
+        if (!empty($tk)) {
+            $DB->insert_record(
+                'zoom_registrants',
+                (object) [
+                    'userid' => $USER->id,
+                    'zoomid' => $zoom->id,
+                    'meeting_id' => $zoom->meeting_id,
+                    'registrant_id' => $registrant->registrant_id,
+                    'registrant_token' => $tk,
+                ]
+            );
+        }
+    }
+    return $tk;
+}
