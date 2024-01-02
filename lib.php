@@ -393,6 +393,7 @@ function zoom_delete_instance($id) {
     zoom_calendar_item_delete($zoom);
     zoom_grade_item_delete($zoom);
 
+    $DB->delete_records('zoom_registrants', ['zoomid' => $zoom->id]);
     $DB->delete_records('zoom', ['id' => $zoom->id]);
 
     // Delete breakout rooms.
