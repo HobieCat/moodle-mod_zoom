@@ -429,6 +429,16 @@ class mod_zoom_mod_form extends moodleform_mod {
         $mform->addHelpButton('registrants_confirmation_email', 'registrants_confirmation_email', 'mod_zoom');
         $mform->hideIf('registrants_confirmation_email', 'registration', 'eq', ZOOM_REGISTRATION_OFF);
 
+        $mform->addElement(
+            'advcheckbox',
+            'autoregister_user',
+            get_string('autoregister_user', 'zoom'),
+            get_string('autoregister_user', 'zoom')
+        );
+        $mform->setDefault('autoregister_user', $config->autoregister_user);
+        $mform->addHelpButton('autoregister_user', 'autoregister_user', 'mod_zoom');
+        $mform->hideIf('autoregister_user', 'registration', 'eq', ZOOM_REGISTRATION_OFF);
+
 
         // Adding the "breakout rooms" fieldset.
         $mform->addElement('header', 'breakoutrooms', get_string('breakoutrooms', 'mod_zoom'));

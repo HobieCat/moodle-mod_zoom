@@ -429,6 +429,15 @@ if ($ADMIN->fulltree) {
     );
     $settings->add($defaultregistrants_confirmation_email);
 
+    $defaultautoregister_user = new admin_setting_configcheckbox(
+        'zoom/defaultrautoregister_user',
+        get_string('autoregister_user', 'mod_zoom'),
+        get_string('autoregister_user_help', 'mod_zoom'),
+        1,
+    );
+    $settings->add($defaultautoregister_user);
+
+
     $defaultrequirepasscode = new admin_setting_configcheckbox(
         'zoom/requirepasscode',
         get_string('requirepasscode', 'mod_zoom'),

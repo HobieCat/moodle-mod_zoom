@@ -954,5 +954,20 @@ function xmldb_zoom_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2023122800, 'zoom');
     }
 
+    if ($oldversion < 2024010200) {
+
+        // Start zoom table modifications.
+        $table = new xmldb_table('zoom');
+
+        // Define and conditionally add field autoregister_user.
+        $field = new xmldb_field('autoregister_user', XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '1', 'registrants_confirmation_email');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Zoom savepoint reached.
+        upgrade_mod_savepoint(true, 2024010200, 'zoom');
+    }
+
     return true;
 }
