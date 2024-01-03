@@ -1014,6 +1014,21 @@ function xmldb_zoom_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2024010300, 'zoom');
     }
 
+    if ($oldversion < 2024010301) {
+
+        // Start zoom table modifications.
+        $table = new xmldb_table('zoom');
+
+        // Define and conditionally add field allow_multiple_devices.
+        $field = new xmldb_field('allow_multiple_devices', XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '1', 'autoregister_user');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Zoom savepoint reached.
+        upgrade_mod_savepoint(true, 2024010301, 'zoom');
+    }
+
 
     return true;
 }

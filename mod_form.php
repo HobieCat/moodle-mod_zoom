@@ -431,6 +431,16 @@ class mod_zoom_mod_form extends moodleform_mod {
 
         $mform->addElement(
             'advcheckbox',
+            'allow_multiple_devices',
+            get_string('allow_multiple_devices', 'zoom'),
+            get_string('allow_multiple_devices', 'zoom')
+        );
+        $mform->setDefault('allow_multiple_devices', $config->defaultallow_multiple_devices);
+        $mform->addHelpButton('allow_multiple_devices', 'allow_multiple_devices', 'mod_zoom');
+        $mform->hideIf('allow_multiple_devices', 'registration', 'eq', ZOOM_REGISTRATION_OFF);
+
+        $mform->addElement(
+            'advcheckbox',
             'autoregister_user',
             get_string('autoregister_user', 'zoom'),
             get_string('autoregister_user', 'zoom')

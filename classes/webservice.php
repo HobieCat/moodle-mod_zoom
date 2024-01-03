@@ -625,6 +625,10 @@ class webservice {
             $data['settings']['registrants_confirmation_email'] = (bool) $zoom->registrants_confirmation_email;
         }
 
+        if (isset($zoom->allow_multiple_devices)) {
+            $data['settings']['allow_multiple_devices'] = (bool) $zoom->allow_multiple_devices;
+        }
+
         if (!empty($zoom->webinar)) {
             if ($zoom->recurring) {
                 if ($zoom->recurrence_type == ZOOM_RECURRINGTYPE_NOTIME) {

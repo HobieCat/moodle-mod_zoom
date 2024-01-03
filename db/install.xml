@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/zoom/db" VERSION="20240103" COMMENT="Zoom module"
+<XMLDB PATH="mod/zoom/db" VERSION="2024010301" COMMENT="Zoom module"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -53,6 +53,7 @@
         <FIELD NAME="registrants_email_notification" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether to send registrants email notifications about their registration approval, cancellation, or rejection"/>
         <FIELD NAME="registrants_confirmation_email" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether to send registrants an email confirmation"/>
         <FIELD NAME="autoregister_user" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Whether to automatically register the moodle user to the zoom meeting"/>
+        <FIELD NAME="allow_multiple_devices" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Whether to allow attendees to join a meeting from multiple devices."/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
