@@ -999,6 +999,21 @@ function xmldb_zoom_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2024010201, 'zoom');
     }
 
+    if ($oldversion < 2024010300) {
+
+        // Define field status to be added to zoom_meeting_participants.
+        $table = new xmldb_table('zoom_meeting_participants');
+        $field = new xmldb_field('status', XMLDB_TYPE_TEXT, null, null, null, null, null, 'detailsid');
+
+        // Conditionally launch add field status.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Zoom savepoint reached.
+        upgrade_mod_savepoint(true, 2024010300, 'zoom');
+    }
+
 
     return true;
 }

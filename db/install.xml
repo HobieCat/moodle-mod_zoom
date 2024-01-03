@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/zoom/db" VERSION="20240102" COMMENT="Zoom module"
+<XMLDB PATH="mod/zoom/db" VERSION="20240103" COMMENT="Zoom module"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -92,6 +92,7 @@
         <FIELD NAME="duration" TYPE="int" LENGTH="12" NOTNULL="true" SEQUENCE="false" COMMENT="The time for which the participant was in the meeting."/>
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="user's name"/>
         <FIELD NAME="detailsid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="link to zoom_meeting_details table"/>
+        <FIELD NAME="status" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="user's status as reported by the Zoom API."/>
       </FIELDS>
       <KEYS>
         <KEY NAME="id_primary" TYPE="primary" FIELDS="id" COMMENT="Moodle forces us to use id as a primary key. Most database actions will be performed using participant_universal_id."/>

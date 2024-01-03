@@ -277,6 +277,10 @@ class get_meeting_reports extends scheduled_task {
             $participant->id = null;
         }
 
+        if ($participant->status == '') {
+            $participant->status = null;
+        }
+
         return [
             'name' => $name,
             'userid' => $moodleuserid,
@@ -287,6 +291,7 @@ class get_meeting_reports extends scheduled_task {
             'join_time' => strtotime($participant->join_time),
             'leave_time' => strtotime($participant->leave_time),
             'duration' => $participant->duration,
+            'status' => $participant->status,
         ];
     }
 

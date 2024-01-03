@@ -94,6 +94,7 @@ if (!empty($export)) {
         get_string('jointime', 'mod_zoom'),
         get_string('leavetime', 'mod_zoom'),
         get_string('duration', 'mod_zoom'),
+        get_string('status'),
     ];
 } else {
     $table->head = [
@@ -102,6 +103,7 @@ if (!empty($export)) {
         get_string('jointime', 'mod_zoom'),
         get_string('leavetime', 'mod_zoom'),
         get_string('duration', 'mod_zoom'),
+        get_string('status'),
     ];
 }
 
@@ -153,6 +155,8 @@ foreach ($participants as $p) {
     }
 
     $row[] = $p->duration / 60;
+
+    $row[] = $p->status ?? '';
 
     $table->data[] = $row;
 }
