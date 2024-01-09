@@ -52,6 +52,54 @@
       }
     };
 
+    const initCallBack = function (isError, response) {
+
+      window.parent.postMessage({
+        message: "zoomInitDone",
+        userishost: zoomObj.userishost,
+        debugging: debug,
+      });
+
+      if (!isError) {
+        log("intResponse is ", response);
+        window.ZoomMtg.join({
+          signature: zoomObj.signature,
+          sdkKey: zoomObj.sdkKey,
+          meetingNumber: zoomObj.meeting_id,
+          userName: userObj.fullname,
+          userEmail: userObj.email,
+          // password optional; set by Host
+          passWord: zoomObj.password,
+          tk: zoomObj.tk,
+          zak: zoomObj.zak,
+          success: function (joinResp) {
+            if (!zoomObj.userishost) {
+              Array.from(document.getElementsByClassName('meeting-info-container--left-side') ?? []).forEach(
+                (el) => {
+                  Array.from(el.childNodes).filter(
+                    (child) => !child.classList.contains('recording-indication__recording-container')
+                  ).forEach(
+                    (el) => { el.style.display = 'none'; }
+                  );
+                });
+            }
+            window.parent.postMessage({
+              message: "zoomJoined",
+              userishost: zoomObj.userishost,
+              debugging: debug,
+            });
+            addZoomSessionKeys();
+            log("joinResp is ", joinResp);
+          },
+          error: function (joinResp) {
+            error("joinResp is ", joinResp);
+          }
+        });
+      } else {
+        error("intResponse is ", response);
+      }
+    };
+
     const startMeeting = () => {
 
       document.getElementById('zmmtg-root').style.display = 'block';
@@ -98,38 +146,10 @@
           // 'report',
         ] : []),
         success: function (initResp) {
-          log("intResponse is ", initResp);
-          window.ZoomMtg.join({
-            signature: zoomObj.signature,
-            sdkKey: zoomObj.sdkKey,
-            meetingNumber: zoomObj.meeting_id,
-            userName: userObj.fullname,
-            userEmail: userObj.email,
-            // password optional; set by Host
-            passWord: zoomObj.password,
-            // tk: registrantToken,
-            zak: zoomObj.zak,
-            success: function (joinResp) {
-              if (!zoomObj.userishost) {
-                Array.from(document.getElementsByClassName('meeting-info-container--left-side') ?? []).forEach(
-                  (el) => {
-                    Array.from(el.childNodes).filter(
-                      (child) => !child.classList.contains('recording-indication__recording-container')
-                    ).forEach(
-                      (el) => { el.style.display = 'none'; }
-                    );
-                  });
-              }
-              addZoomSessionKeys();
-              log("joinResp is ", joinResp);
-            },
-            error: function (joinResp) {
-              error("joinResp is ", joinResp);
-            }
-          });
+          initCallBack(false, initResp);
         },
         error: (initResp) => {
-          error("intResponse is ", initResp);
+          initCallBack(true, initResp);
         }
       });
     };
@@ -204,22 +224,51 @@
   };
 
   // add event listeners
-  window.addEventListener("message", (event) => {
-    if (window.self !== window.top) {
+  if (window.self == window.top) {
+    /**
+     * add event listener for the main page, i.e. outside the iframe
+     */
+    window.addEventListener("message", (event) => {
+      const meetingEl = document.getElementById('meetingSDKElement');
+      if (event.data.message === 'zoomLeave') {
+        // zoomLeave, redirect to passed url
+        if ('zoomLeave' in event.data) {
+          if ('debugging' in event.data && event.data.debugging && 'userishost' in event.data && event.data.userishost) {
+            // replace the iframe with a back link.
+            // const iframeParent = document.getElementById('meetingSDKElement').parentNode;
+            // iframeParent.style.margin = "0";
+            // iframeParent.style.padding = "0";
+            if (meetingEl && meetingEl.parentNode) {
+              meetingEl.parentNode.classList.remove(...meetingEl.parentNode.classList);
+              meetingEl.parentNode.innerHTML = `<a href="${event.data.zoomLeave}">${event.data.zoomLeave}</a>`;
+            }
+          } else {
+            window.location.replace(event.data.zoomLeave);
+          }
+        }
+      } else if (event.data.message === 'zoomInitDone') {
+        if (meetingEl) {
+          if (!('debugging' in event.data && event.data.debugging)) {
+            meetingEl.removeAttribute('onload');
+          }
+        }
+      } else if (event.data.message === 'zoomJoined') {
+        if (meetingEl) {
+          meetingEl.parentNode.classList.add('embed-responsive', 'embed-responsive-16by9', 'joined');
+        }
+      }
+    }, false);
+  } else {
+    /**
+     * add event listener for the zoom meeting, i.e. inside the iframe
+     */
+    window.addEventListener("message", (event) => {
       // messages handled inside the iframe
       if (event.data.message === 'init') {
         // trigger the init function
         init(event.data.zoom, event.data.user, event.data.zoomSdkVersion, event.data.debugging);
       }
-    } else {
-      // messages outside the iframe (i.e. in webmeeting.php)
-      if (event.data.message === 'zoomLeave') {
-        // zoomLeave, redirect to passed url
-        if ('redirect' in event.data) {
-          window.location.replace(event.data.redirect);
-        }
-      }
-    }
-  }, false);
+    }, false);
+  }
 
 })();
