@@ -39,6 +39,7 @@ class zoom_handler
     public static function loggedout(user_loggedout $event)
     {
         $logoutUrl = new moodle_url('/login/logout.php', ['sesskey' => $_GET['sesskey']]);
+        $htmllang = '';
         $head = '<meta http-equiv="refresh" content="3; url=' . $logoutUrl . '" />';
 
         $content = "<script>const zoomKeys = window.sessionStorage.getItem('zoomKeys') ?? '';
