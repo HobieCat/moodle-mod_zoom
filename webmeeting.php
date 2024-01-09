@@ -43,6 +43,14 @@ require_login();
 [$course, $cm, $zoom] = zoom_get_instance_setup();
 // Get meeting state from Zoom.
 [$inprogress, $available, $finished] = zoom_get_state($zoom);
+// Get Zoom user ID of current Moodle user.
+$zoomuserid = zoom_get_user_id(false);
+// Check if this user is the (real) host.
+$userisrealhost = ($zoomuserid === $zoom->host_id);
+// Get the alternative hosts of the meeting.
+$alternativehosts = zoom_get_alternative_host_array_from_string($zoom->alternative_hosts);
+// Check if this user is the host or an alternative host.
+$userishost = ($userisrealhost || in_array(zoom_get_api_identifier($USER), $alternativehosts, true));
 
 // html for the template.
 $outhtml = '';
@@ -51,14 +59,7 @@ if (!$meetingcontent) {
     $config = get_config('zoom');
     $context = context_module::instance($cm->id);
     $iszoommanager = has_capability('mod/zoom:addinstance', $context);
-    // Get Zoom user ID of current Moodle user.
-    $zoomuserid = zoom_get_user_id(false);
-    // Check if this user is the (real) host.
-    $userisrealhost = ($zoomuserid === $zoom->host_id);
-    // Get the alternative hosts of the meeting.
-    $alternativehosts = zoom_get_alternative_host_array_from_string($zoom->alternative_hosts);
-    // Check if this user is the host or an alternative host.
-    $userishost = ($userisrealhost || in_array(zoom_get_api_identifier($USER), $alternativehosts, true));
+
     $showrecreate = false;
     if ($zoom->exists_on_zoom == ZOOM_MEETING_EXPIRED) {
         $showrecreate = true;
@@ -100,7 +101,9 @@ if ($zoomLeave) {
         'script',
         'window.parent.postMessage({
             "message" : "zoomLeave",
-            "redirect" : "' . (new moodle_url('/mod/zoom/view.php', ['id' => $cm->id]))->out() . '",
+            "userishost" : ' . ($userishost ? 'true' : 'false') . ',
+            "zoomLeave" : "' . (new moodle_url('/mod/zoom/view.php', ['id' => $cm->id]))->out() . '",
+            "debugging" : ' . (debugging() ? 'true' : 'false') . ',
         })'
     );
 
@@ -170,6 +173,7 @@ if ($zoomLeave) {
                     'meeting_id' => $zoom->meeting_id,
                     'password' => $zoom->password,
                     'zak' => ($userishost ? zoom_meeting_get_host_zak() : null),
+                    'tk' => ($userishost ? null : get_registrant_tk($zoom)),
                     'leaveUrl' => (new moodle_url('/mod/zoom/webmeeting.php', ['id' => $cm->id, 'zoomLeave' => 1, 'meetingcontent' => 1]))->out(),
                 ], JSON_HEX_QUOT) . ',
                     "user" : ' . json_encode([
@@ -183,8 +187,8 @@ if ($zoomLeave) {
                 'src' => new moodle_url('/mod/zoom/webmeeting.php', ['id' => $cm->id, 'meetingcontent' => 1]),
                 'id' => 'meetingSDKElement',
                 'class' => 'responsive-iframe',
-                // 'width' => '100%',
-                // 'height' => '800',
+                'width' => '100%',
+                'height' => '645',
                 'frameBorder' => '0',
                 'allowtransparency' => 'true',
                 'allowfullscreen' => 'true',
