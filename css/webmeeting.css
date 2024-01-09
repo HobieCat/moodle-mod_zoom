@@ -1,14 +1,21 @@
-.iframe-container {
-    position: relative;
+ .iframe-container:not(.joined) {
+    min-height: 645px;
+    /*position: relative;
     overflow: hidden;
     width: 80%;
     margin: 0 auto;
     padding-top: 56.25%;
-    /* 16:9 Aspect Ratio (divide 9 by 16 = 0.5625) */
+    */
 }
 
+.iframe-container.joined {
+    max-height: 80vh;
+}
+/* 16:9 Aspect Ratio (divide 9 by 16 = 0.5625) */
+
 /* Then style the iframe to fit in the container div with full height and width */
-.responsive-iframe {
+
+/* .responsive-iframe {
     position: absolute;
     top: 0;
     left: 0;
@@ -18,3 +25,4 @@
     height: 80%;
     border: none;
 }
+*/
