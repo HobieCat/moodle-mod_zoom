@@ -430,7 +430,7 @@ if ($ADMIN->fulltree) {
     $settings->add($defaultregistrants_confirmation_email);
 
     $defaultallow_multiple_devices = new admin_setting_configcheckbox(
-        'zoom/allow_multiple_devices',
+        'zoom/defaultallow_multiple_devices',
         get_string('allow_multiple_devices', 'mod_zoom'),
         get_string('allow_multiple_devices_help', 'mod_zoom'),
         1,
