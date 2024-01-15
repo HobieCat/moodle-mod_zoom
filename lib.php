@@ -1346,3 +1346,26 @@ function zoom_cm_info_dynamic(cm_info $cm) {
         }
     }
 }
+
+/**
+ * This function extends the course navigation block for the site.
+ *
+ * @param \navigation_node $parentnode
+ * @param \stdClass $course
+ * @param \context_course $context
+ */
+function zoom_extend_navigation_course(\navigation_node $parentnode, \stdClass $course, \context_course $context) {
+    global $PAGE;
+    if (is_callable('course_has_zoom') && course_has_zoom($course)) {
+        $addnode = $context->contextlevel === CONTEXT_COURSE;
+        $isCourseNav = is_null($PAGE->cm->instance);
+        if ($addnode && $isCourseNav && has_capability('mod/zoom:viewownreport', $context)) {
+            $parentnode->add_node(
+                \navigation_node::create(
+                    get_string('viewownreportlink', 'mod_zoom'),
+                    new \moodle_url('/mod/zoom/ownreport.php', ['id' => $course->id])
+                )
+            );
+        }
+    }
+}
