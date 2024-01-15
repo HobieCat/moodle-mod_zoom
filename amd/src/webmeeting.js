@@ -74,6 +74,7 @@
           zak: zoomObj.zak,
           success: function (joinResp) {
             if (!zoomObj.userishost) {
+              // leave recording indication only, for privacy issues
               Array.from(document.getElementsByClassName('meeting-info-container--left-side') ?? []).forEach(
                 (el) => {
                   Array.from(el.childNodes).filter(
@@ -81,7 +82,16 @@
                   ).forEach(
                     (el) => { el.style.display = 'none'; }
                   );
-                });
+                }
+              );
+              // Remove screen sharing, Captions and Reaction buttons for non-host
+              Array.from(document.querySelectorAll(
+                '[feature-type="sharing"], [feature-type="newLTT"], [feature-type="reaction"]') ?? []
+              ).forEach(
+                (el) => {
+                  el.remove();
+                }
+              );
             }
             window.parent.postMessage({
               message: "zoomJoined",
@@ -121,9 +131,9 @@
         showMeetingHeader: zoomObj.userishost,
         // disableVoIP: true,
         videoHeader: zoomObj.userishost,
-        isSupportBreakout: false,
-        isSupportCC: zoomObj.userishost,
-        isSupportChat: zoomObj.userishost,
+        isSupportBreakout: zoomObj.userishost,
+        isSupportCC: false, // zoomObj.userishost,
+        isSupportChat: true,
         isSupportNonverbal: zoomObj.userishost,
         isSupportPolling: zoomObj.userishost,
         isSupportQA: zoomObj.userishost,
@@ -133,6 +143,7 @@
         // disablePreview: true,
         disableRecord: !zoomObj.userishost,
         disableReport: !zoomObj.userishost,
+        screenShare: zoomObj.userishost,
         meetingInfo: (zoomObj.userishost ? [
           'topic',
           'host',
