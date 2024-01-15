@@ -118,6 +118,9 @@ define('ZOOM_REGISTRATION_OFF', 2);
 // Meeting SDK for web version.
 // see: https://developers.zoom.us/docs/meeting-sdk/minimum-version/
 define('ZOOM_MEETING_SDK_WEB_VERSION', '2.18.2');
+// custom constants
+define ('ZOOM_DEFAULT_COURSE_DURATION', 691200);  // 192 hours in seconds
+define ('ZOOM_MAX_ALLOWED_ABSENCE', 0.2 * ZOOM_DEFAULT_COURSE_DURATION); // 20%
 
 /**
  * Terminate the current script with a fatal error.
@@ -1446,4 +1449,293 @@ function get_registrant_tk($zoom) {
         }
     }
     return $tk;
+}
+
+/**
+ * Returns true if the passed course has at least one 'zoom' activity.
+ *
+ * @param \stdClass $course
+ * @return bool true if the passed course has at least one 'zoom' activity.
+ */
+function course_has_zoom(\stdClass $course) {
+    return count(get_all_instances_in_course('zoom', $course)) > 0;
+}
+
+/**
+ * Returns true if the passed zoom object is visibile for the passed user.
+ *
+ * @param integer $userid the user id.
+ * @param integer $zoomid the id of the zoom object.
+ * @param integer|null $courseid optional course id.
+ * @return bool true if the zoom object is visible.
+ */
+function zoom_is_user_visible(int $userid, int $zoomid, int $courseid = null) {
+    global $DB;
+    if (empty($courseid)) {
+        $courseid = (int) $DB->get_record_select('zoom', 'id=:zoomid', ['zoomid' => $zoomid], 'course', MUST_EXIST)->course;
+    }
+    if (!empty($zoomid) && !empty($courseid)) {
+        $cm = get_coursemodule_from_instance('zoom', $zoomid, $courseid, false, MUST_EXIST);
+        return \core_availability\info_module::is_user_visible($cm, $userid, false);
+    }
+    return false;
+}
+
+/**
+ * Gets data needed to build the custom zoom report.
+ *
+ * @param int $courseid the id of the course to build the report for
+ * @param string $calcMinutesWith calc minutes using 'duration' or 'total_minutes' property. Defaults to 'duration'
+ * @param boolean $withNonMoodle true to include non moodle users in the data. Defaults to false
+ * @return array data to build the custom zoom report
+ */
+function get_zoom_report_data($courseid, $calcMinutesWith = 'duration', $withNonMoodle = false, $userid = false) {
+    global $DB;
+
+    $goodStatuses = [
+        'in_meeting',
+    ];
+
+    $data = [];
+    // Find all meetings for course.
+    $meetings = $DB->get_records_select('zoom', 'course=:courseid', ['courseid' => $courseid], '', 'id,course,name,duration,start_time,end_date_time');
+    // filter out meetings not visibile to the user, if we're bulding an ownreport (i.e. $userid is not false)
+    if ($userid) {
+        $meetings = array_filter(
+            $meetings,
+            fn($meeting) => zoom_is_user_visible($userid, $meeting->id, $courseid)
+        );
+    }
+
+    if (!empty($meetings)) {
+        // Get the passed course context
+        $coursecontext = \context_course::instance($courseid);
+        $emptyUserArr = [
+            'id' => null,
+            'name' => null,
+            'duration' => 0,
+            'durationmin' => 0, // computed like mood_zoom would
+        ];
+        foreach ($goodStatuses as $goodStatus) {
+            $emptyUserArr[$goodStatus] = 0;
+        }
+
+        foreach ($meetings as $meeting) {
+
+            /**
+             * Meeting data.
+             */
+            $data[$meeting->id] = [
+                'meeting' => $meeting,
+                'totalSessionTime' => null,
+                'actualSessionTime' => null,
+                'maxParticipants' => null,
+                'sessions' => null,
+                'users' => null,
+            ];
+
+            /**
+             * Sessions data.
+             * code from function zoom_get_sessions_for_display in zoom module's locallib.php
+             */
+            $sessions = $DB->get_records('zoom_meeting_details', ['zoomid' => $meeting->id]);
+            foreach ($sessions as $uuid => $session) {
+                $tmpParticipants = zoom_get_participants_report($session->id);
+                if ($userid) {
+                    $tmpParticipants = array_filter($tmpParticipants, fn($el) => $el->userid == $userid);
+                }
+                $sessions[$uuid]->uniqueParticipants = get_unique_participants_count($tmpParticipants);
+                $sessions[$uuid]->participants = $tmpParticipants;
+                $sessions[$uuid]->actual_duration = $session->end_time - $session->start_time;
+            }
+            $data[$meeting->id]['maxParticipants'] = max([0] + array_map(fn ($el) => (int)($el->uniqueParticipants), $sessions));
+            $data[$meeting->id]['totalSessionsTime'] = array_sum(array_map(fn ($el) => (int)$el->$calcMinutesWith, $sessions));
+            $data[$meeting->id]['actualSessionsTime'] = array_sum(array_map(fn ($el) => (int)$el->actual_duration, $sessions));
+            $data[$meeting->id]['sessions'] = $sessions;
+
+            /**
+             * Users data.
+             */
+            $users = [];
+
+            /**
+             * Users join and leave times, to calc duration merge overlapping periods.
+             */
+            $userTimes = [];
+
+            foreach ($sessions as $uuid => $session) {
+                if (property_exists($session, 'participants') && !empty($session->participants)) {
+                    foreach ($session->participants as $participant) {
+                        /**
+                         * WARNING:
+                         * Unless $withNonMoodle is true, discard users without
+                         * a userid since they're most likely NOT moodle users.
+                         */
+                        if ($withNonMoodle && empty($participant->userid) && !empty($participant->name)) {
+                            $participant->userid = md5($participant->name);
+                        }
+                        if (!empty($participant->userid)) {
+                            if (!isset($users[$participant->userid])) {
+                                $users[$participant->userid] = (object) $emptyUserArr;
+                                $users[$participant->userid]->id = $participant->userid;
+                                $users[$participant->userid]->name = $participant->name;
+                            }
+                            if (!isset($userTimes[$participant->userid])) {
+                                $userTimes[$participant->userid] = [];
+                            }
+                            $users[$participant->userid]->duration += (int) $participant->duration;
+                            if (in_array($participant->status ?? null, $goodStatuses)) {
+                                $users[$participant->userid]->{$participant->status} += (int) $participant->duration;
+                                array_push($userTimes[$participant->userid], [
+                                    'join' => (int) $participant->join_time,
+                                    'leave' => (int) $participant->leave_time,
+                                ]);
+                            }
+
+                            // simulate duration calc as done by participants.php:149
+                            $duration = $participant->duration;
+                            $durationremainder = $duration % 60;
+                            if ($durationremainder != 0) {
+                                $duration += 60 - $durationremainder;
+                            }
+                            $users[$participant->userid]->durationmin +=  $duration / 60;
+                        }
+                    }
+
+                    foreach ($userTimes as $userid => $range) {
+                        // sum all user merged ranges to build the mergedDuration
+                        $users[$userid]->mergedDuration = array_reduce(
+                            mergeDateRanges($range),
+                            fn ($carry, $item) => $carry += $item['leave'] - $item['join'],
+                            0
+                        );
+                        // add user roles in the course
+                        $users[$userid]->roles = array_map(
+                            fn ($el) => $el->shortname,
+                            get_user_roles($coursecontext, $userid)
+                        );
+                    }
+                }
+            }
+            uasort($users, fn ($a, $b) => strcmp($a->name, $b->name));
+            $data[$meeting->id]['users'] = $users;
+        }
+    }
+
+    // sort by meeting start_time ASC
+    uasort($data, fn($a, $b) => $a['meeting']->start_time - $b['meeting']->start_time);
+
+    // if ($userid) {
+    //     // filter out meetings not available for the user
+    //     $data = array_filter(
+    //         $data,
+    //         fn($meetingData) => zoom_is_user_visible($userid, $meetingData['meeting']->id, $courseid)
+    //     );
+    // }
+
+    return $data;
+}
+
+/**
+ * Finds the number of unique participants in the passed participants array.
+ *
+ * @param array $participantlist
+ * @return int number of unique participants
+ */
+function get_unique_participants_count($participantlist = []) {
+    $uniquevalues = [];
+    $uniqueparticipantcount = 0;
+    foreach ($participantlist as $participant) {
+        $unique = true;
+        if ($participant->uuid != null) {
+            if (array_key_exists($participant->uuid, $uniquevalues)) {
+                $unique = false;
+            } else {
+                $uniquevalues[$participant->uuid] = true;
+            }
+        }
+
+        if ($participant->userid != null) {
+            if (!$unique || !array_key_exists($participant->userid, $uniquevalues)) {
+                $uniquevalues[$participant->userid] = true;
+            } else {
+                $unique = false;
+            }
+        }
+
+        if ($participant->user_email != null) {
+            if (!$unique || !array_key_exists($participant->user_email, $uniquevalues)) {
+                $uniquevalues[$participant->user_email] = true;
+            } else {
+                $unique = false;
+            }
+        }
+
+        $uniqueparticipantcount += $unique ? 1 : 0;
+    }
+    return $uniqueparticipantcount;
+}
+
+/**
+ * Merges overlapping date ranges in the passed array whose elements must
+ * be arrays with 'join' and 'leave' keys.
+ *
+ * see:
+ * https://laracasts.com/discuss/channels/laravel/how-do-i-combine-overlapping-date-range-the-easy-way
+ *
+ * @param array $ranges
+ * @return array merged ranges
+ */
+function mergeDateRanges($ranges = []) {
+    $retVal = [];
+    //sort date ranges by begin time
+    usort($ranges, function ($a, $b) {
+        return $a['join'] - $b['join'];
+    });
+
+    $currentRange = [];
+    foreach ($ranges as $range) {
+        // bypass invalid value
+        if ($range['join'] >= $range['leave']) {
+            continue;
+        }
+        //fill in the first element
+        if (empty($currentRange)) {
+            $currentRange = $range;
+            continue;
+        }
+
+        if ($currentRange['leave'] < $range['join']) {
+            $retVal[] = $currentRange;
+            $currentRange = $range;
+        } elseif ($currentRange['leave'] < $range['leave']) {
+            $currentRange['leave'] = $range['leave'];
+        }
+    }
+
+    if ($currentRange) {
+        $retVal[] = $currentRange;
+    }
+
+    return $retVal;
+}
+
+/**
+ * Converts seconds to an array of hours:minutes:seconds
+ *
+ * @param integer $seconds number of seconds to convert
+ * @param bool $asstring true to return a formatted string instead of an array
+ * @return array with keys: 'hrs', 'mins', 'secs'
+ */
+function secondsToHMS(int $seconds = 0, $asstring = true) {
+    $ret = [
+        'hrs' => (int) floor($seconds / 3600),
+        'mins' => (int) floor(($seconds / 60) % 60),
+        'secs' => (int) $seconds % 60,
+    ];
+    if ($asstring) {
+        return vsprintf("%02d:%02d:%02d", $ret);
+    } else {
+        return $ret;
+    }
 }
