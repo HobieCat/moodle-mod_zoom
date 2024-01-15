@@ -193,7 +193,7 @@ if ($zoomLeave) {
                 'allowtransparency' => 'true',
                 'allowfullscreen' => 'true',
                 'allow' => 'camera; microphone;',
-                'sandbox' => 'allow-forms allow-scripts allow-same-origin',
+                'sandbox' => 'allow-forms allow-scripts allow-same-origin allow-popups',
             ]
         );
         $outhtml = html_writer::div($iframe, 'iframe-container');
