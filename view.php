@@ -317,7 +317,7 @@ if ($zoom->show_schedule) {
     }
 
     // Show recordings section if option enabled to view recordings.
-    if (!empty($config->viewrecordings)) {
+    if ($userishost && !empty($config->viewrecordings)) {
         $recordinghtml = null;
         $recordingaddurl = new moodle_url('/mod/zoom/recordings.php', ['id' => $cm->id]);
         $recordingaddbutton = html_writer::div(get_string('recordingview', 'mod_zoom'), 'btn btn-primary');
@@ -329,7 +329,7 @@ if ($zoom->show_schedule) {
     }
 
     // Display add-to-calendar button if meeting was found and isn't recurring and if the admin did not disable the feature.
-    if ($config->showdownloadical != ZOOM_DOWNLOADICAL_DISABLE && !$showrecreate && !$isrecurringnotime) {
+    if ($userishost && $config->showdownloadical != ZOOM_DOWNLOADICAL_DISABLE && !$showrecreate && !$isrecurringnotime) {
         $icallink = new moodle_url('/mod/zoom/exportical.php', ['id' => $cm->id]);
         $calendaricon = $OUTPUT->pix_icon('i/calendar', get_string('calendariconalt', 'mod_zoom'));
         $calendarbutton = html_writer::div($calendaricon . ' ' . get_string('downloadical', 'mod_zoom'), 'btn btn-primary');
@@ -338,23 +338,25 @@ if ($zoom->show_schedule) {
     }
 
     // Show meeting status.
-    if ($zoom->exists_on_zoom == ZOOM_MEETING_EXPIRED) {
-        $status = get_string('meeting_nonexistent_on_zoom', 'mod_zoom');
-    } else if (!$isrecurringnotime) {
-        if ($finished) {
-            $status = get_string('meeting_finished', 'mod_zoom');
-        } else if ($inprogress) {
-            $status = get_string('meeting_started', 'mod_zoom');
-        } else {
-            $status = get_string('meeting_not_started', 'mod_zoom');
-        }
+    if ($userishost) {
+        if ($zoom->exists_on_zoom == ZOOM_MEETING_EXPIRED) {
+            $status = get_string('meeting_nonexistent_on_zoom', 'mod_zoom');
+        } else if (!$isrecurringnotime) {
+            if ($finished) {
+                $status = get_string('meeting_finished', 'mod_zoom');
+            } else if ($inprogress) {
+                $status = get_string('meeting_started', 'mod_zoom');
+            } else {
+                $status = get_string('meeting_not_started', 'mod_zoom');
+            }
 
-        $table->data[] = [$strstatus, $status];
+            $table->data[] = [$strstatus, $status];
+        }
     }
 
     // Show host.
     $hostdisplayname = zoom_get_user_display_name($zoom->host_id);
-    if (isset($hostdisplayname)) {
+    if ($userishost && isset($hostdisplayname)) {
         $table->data[] = [$strhost, $hostdisplayname];
     }
 
@@ -415,7 +417,7 @@ if ($zoom->show_schedule) {
     echo html_writer::table($table);
 }
 
-if ($zoom->show_security) {
+if ($userishost && $zoom->show_security) {
     // Output "Security" heading.
     echo $OUTPUT->heading(get_string('security', 'mod_zoom'), 3);
 
@@ -473,7 +475,7 @@ if ($zoom->show_security) {
     echo html_writer::table($table);
 }
 
-if ($zoom->show_media) {
+if ($userishost && $zoom->show_media) {
     // Output "Media" heading.
     echo $OUTPUT->heading(get_string('media', 'mod_zoom'), 3);
 
@@ -533,7 +535,7 @@ if ($zoom->show_media) {
 
 // Supplementary feature: All meetings link.
 // Only show if the admin did not disable this feature completely.
-if ($config->showallmeetings != ZOOM_ALLMEETINGS_DISABLE) {
+if ($userishost && $config->showallmeetings != ZOOM_ALLMEETINGS_DISABLE) {
     $urlall = new moodle_url('/mod/zoom/index.php', ['id' => $course->id]);
     $linkall = html_writer::link($urlall, $strall);
     echo $OUTPUT->box_start('generalbox mt-4 pt-4 border-top text-center');
