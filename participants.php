@@ -88,21 +88,19 @@ $table = new html_table();
 // If we are exporting, then put email as a separate column.
 if (!empty($export)) {
     $table->head = [
-        get_string('idnumber'),
         get_string('name'),
         get_string('email'),
         get_string('jointime', 'mod_zoom'),
         get_string('leavetime', 'mod_zoom'),
-        get_string('duration', 'mod_zoom'),
+        strtok(get_string('duration', 'mod_zoom'), ' ') . ' (hh:mm:ss)', // first word of string
         get_string('status'),
     ];
 } else {
     $table->head = [
-        get_string('idnumber'),
         get_string('name'),
         get_string('jointime', 'mod_zoom'),
         get_string('leavetime', 'mod_zoom'),
-        get_string('duration', 'mod_zoom'),
+        strtok(get_string('duration', 'mod_zoom'), ' ') . ' (hh:mm:ss)', // first word of string
         get_string('status'),
     ];
 }
@@ -114,15 +112,6 @@ foreach ($participants as $p) {
     $moodleuser = new stdClass();
     if (!empty($p->userid)) {
         $moodleuser = $DB->get_record('user', ['id' => $p->userid], 'idnumber, email');
-    }
-
-    // ID number.
-    if (array_key_exists($p->userid, $moodleidtouids)) {
-        $row[] = $moodleidtouids[$p->userid];
-    } else if (isset($moodleuser->idnumber)) {
-        $row[] = $moodleuser->idnumber;
-    } else {
-        $row[] = '';
     }
 
     // Name/email.
@@ -139,22 +128,17 @@ foreach ($participants as $p) {
         $row[] = $name;
         $row[] = $email;
     } else if (!empty($email)) {
-        $row[] = html_writer::link("mailto:$email", $name);
+        $row[] = html_writer::link(new moodle_url('/mod/zoom/ownreport.php', ['id' => $course->id ,'userid' => $p->userid]), $name);
     } else {
         $row[] = $name;
     }
 
     // Join/leave times.
-    $row[] = userdate($p->join_time, get_string('strftimedatetimeshort', 'langconfig'));
-    $row[] = userdate($p->leave_time, get_string('strftimedatetimeshort', 'langconfig'));
+    $row[] = userdate($p->join_time, get_string('strftimedatetimeshortaccurate', 'langconfig'));
+    $row[] = userdate($p->leave_time, get_string('strftimedatetimeshortaccurate', 'langconfig'));
 
     // Duration.
-    $durationremainder = $p->duration % 60;
-    if ($durationremainder != 0) {
-        $p->duration += 60 - $durationremainder;
-    }
-
-    $row[] = $p->duration / 60;
+    $row[] = secondsToHMS($p->leave_time - $p->join_time);
 
     $row[] = $p->status ?? '';
 
