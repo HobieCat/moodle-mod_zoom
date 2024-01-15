@@ -424,3 +424,8 @@ $string['zoom:refreshsessions'] = 'Refresh Zoom meeting reports';
 $string['zoom:view'] = 'View Zoom meetings';
 $string['zoom:viewdialin'] = 'View Zoom dial-in information';
 $string['zoom:viewjoinurl'] = 'View Zoom join url';
+$string['zoom:viewownreport'] = 'View Zoom own meetings report';
+$string['viewownreportlink'] = 'Meetings report';
+$string['ownreportmeetingfooter'] = 'You\'ve been in the meeting for <strong>{$a->userDuration}</strong> out of <strong>{$a->meetingDuration}</strong>.'; // (<span class="{$a->percentClass}">{$a->percentDuration}</span> of total time)';
+$string['expectedmeetingduration'] = 'Expected meeting duration: {$a}';
+$string['ownreportsummary'] = '<p>Total expected lessons duration is <strong>{$a->total}</strong>, provided duration is <strong>{$a->provided}</strong>.</p><p>Total permitted time absence is: <strong>{$a->max_abscence}</strong><p/><p>Up to now you attended for <strong>{$a->user}</strong>, summing up to <strong>{$a->user_absence}</strong> absence time.</p>';
