@@ -112,4 +112,12 @@ $capabilities = [
             'manager' => CAP_ALLOW,
         ],
     ],
+
+    'mod/zoom:viewownreport' => [
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_COURSE,
+        'archetypes' => [
+            'student' => CAP_ALLOW,
+        ],
+    ],
 ];
