@@ -84,9 +84,9 @@
                   );
                 }
               );
-              // Remove screen sharing and Captions buttons for non-host
+              // Remove Captions buttons for non-host
               Array.from(document.querySelectorAll(
-                '[feature-type="sharing"], [feature-type="newLTT"]') ?? []
+                '[feature-type="newLTT"]') ?? []
               ).forEach(
                 (el) => {
                   el.remove();
