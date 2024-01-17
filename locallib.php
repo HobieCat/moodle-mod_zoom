@@ -1458,7 +1458,8 @@ function get_registrant_tk($zoom) {
  * @return bool true if the passed course has at least one 'zoom' activity.
  */
 function course_has_zoom(\stdClass $course) {
-    return count(get_all_instances_in_course('zoom', $course)) > 0;
+    // return count(get_all_instances_in_course('zoom', $course)) > 0;
+    return count(get_fast_modinfo($course)->get_instances_of('zoom')) > 0;
 }
 
 /**
