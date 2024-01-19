@@ -80,7 +80,7 @@ if ($maskparticipantdata) {
 $data = get_zoom_report_data($course->id, 'duration', false, $userid);
 
 // Display page contents if there is some data.
-if (empty($data)) {
+if (empty($data['meetings'])) {
     echo $OUTPUT->header();
     notice(get_string('nozoomsfound', 'mod_zoom'), new moodle_url('/course/view.php', ['id' => $course->id]));
 } else {
@@ -97,7 +97,18 @@ if (empty($data)) {
         'provided' => 0,
     ];
 
-    foreach($data as $meetingData) {
+    if (!empty($data['reportlastupdate'])) {
+        echo html_writer::tag(
+            'h3',
+            get_string(
+                'ownreportlastupdate',
+                'mod_zoom',
+                userdate($data['reportlastupdate'], get_string('strftimedate', 'langconfig'))
+            )
+        );
+    }
+
+    foreach($data['meetings'] as $meetingData) {
         // output a table foreach course meeting.
         $sessions = $meetingData['sessions'];
 
@@ -112,7 +123,7 @@ if (empty($data)) {
             'aria-controls' => 'tab-' . $meetingData['meeting']->id,
         ];
         $divClass = (!$isTeacher || empty($sessions)) ? '' : ' accordion-heading';
-        $h3Attrs = (!$isTeacher || empty($sessions)) ? null : [
+        $cardHeaderAttrs = (!$isTeacher || empty($sessions)) ? null : [
             'class' => 'accordion-btn',
         ];
 
@@ -122,7 +133,7 @@ if (empty($data)) {
                 userdate($meetingData['meeting']->start_time, get_string('strftimedatefullshort', 'langconfig')) .
                 ': ' .
                 $meetingData['meeting']->name,
-                $h3Attrs
+                $cardHeaderAttrs
             ),
             'card-header' . $divClass,
             $divAttrs
