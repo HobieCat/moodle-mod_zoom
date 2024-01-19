@@ -25,6 +25,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use core\task\manager;
+
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
@@ -1634,7 +1636,18 @@ function get_zoom_report_data($courseid, $calcMinutesWith = 'duration', $withNon
     //     );
     // }
 
-    return $data;
+    // Get last mod_zoom\task\get_meeting_reports execution time
+    $tasks = manager::get_scheduled_task(mod_zoom\task\get_meeting_reports::class);
+    if (is_object($tasks) && method_exists($tasks, 'get_last_run_time')) {
+        $reportlastupdate = $tasks->get_last_run_time();
+    } else {
+        $reportlastupdate = null;
+    }
+
+    return [
+        'meetings' => $data,
+        'reportlastupdate' => $reportlastupdate,
+    ];
 }
 
 /**
