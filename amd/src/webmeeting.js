@@ -131,7 +131,7 @@
         showMeetingHeader: zoomObj.userishost,
         // disableVoIP: true,
         videoHeader: zoomObj.userishost,
-        isSupportBreakout: zoomObj.userishost,
+        isSupportBreakout: true,
         isSupportCC: false, // zoomObj.userishost,
         isSupportChat: true,
         isSupportNonverbal: zoomObj.userishost,
