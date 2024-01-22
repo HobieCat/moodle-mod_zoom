@@ -37,9 +37,9 @@ if (empty($id)) {
 $course = $DB->get_record('course', ['id' => $id], '*', MUST_EXIST);
 $ccontext = context_course::instance($course->id);
 $pageurl = new moodle_url('/mod/zoom/ownreport.php', ['id' => $course->id]);
+$pageheading = get_string('viewownreportlink', 'mod_zoom');
 \mod_customcert\page_helper::page_setup($pageurl, $ccontext, "$course->shortname: $pageheading");
 
-$pageheading = get_string('viewownreportlink', 'mod_zoom');
 $PAGE->set_title("$course->shortname: $pageheading");
 $PAGE->set_heading($course->fullname);
 $PAGE->set_url($pageurl);
@@ -48,9 +48,9 @@ $PAGE->add_body_class('limitedwidth');
 
 // Check capability.
 require_login($course);
-require_capability('mod/zoom:viewownreport', context_course::instance($course->id));
+require_capability('mod/zoom:viewownreport', $ccontext);
 
-$isTeacher = count(array_intersect(
+$isTeacher = is_siteadmin() || count(array_intersect(
     array_map(fn($el) => $el->shortname, get_user_roles($ccontext, $USER->id, false)),
     ['editingteacher', 'teacher']
 )) > 0;
@@ -59,9 +59,7 @@ if (empty($userid)) {
     $userid = $USER->id;
 } else {
     // Check capability.
-    $cm = get_coursemodule_from_instance('zoom', $id, $course->id, false, MUST_EXIST);
-    $context = context_module::instance($cm->id);
-    require_capability('mod/zoom:addinstance', $context);
+    require_capability('mod/zoom:addinstance', $ccontext);
     $user = $DB->get_record('user', ['id' => $userid]);
     $pageheading .= ' '.strtolower(get_string('for')) . ' ' . fullname($user);
 }
@@ -116,7 +114,7 @@ if (empty($data['meetings'])) {
         $totalDurations['user'] += min([$meetingData['meeting']->duration, $meetingData['users'][$userid]->mergedDuration]);
         $totalDurations['provided'] += ($meetingData['meeting']->start_time <= time() ? $meetingData['meeting']->duration : 0);
 
-        $divAttrs = [
+        $divAttrs = (!$isTeacher || empty($sessions)) ? [] : [
             'data-toggle' => 'collapse',
             'data-target' => '#tab-' . $meetingData['meeting']->id,
             'aria-expanded' => $expandFirst ? 'true' : 'false',
