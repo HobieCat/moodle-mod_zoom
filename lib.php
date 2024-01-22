@@ -1358,7 +1358,7 @@ function zoom_extend_navigation_course(\navigation_node $parentnode, \stdClass $
     global $PAGE;
     if (is_callable('course_has_zoom') && course_has_zoom($course)) {
         $addnode = $context->contextlevel === CONTEXT_COURSE;
-        $isCourseNav = is_null($PAGE->cm->instance);
+        $isCourseNav = is_null($PAGE->cm) || (!is_null($PAGE->cm) && is_null($PAGE->cm->instance));
         if ($addnode && $isCourseNav && has_capability('mod/zoom:viewownreport', $context)) {
             $parentnode->add_node(
                 \navigation_node::create(
