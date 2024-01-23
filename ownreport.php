@@ -113,15 +113,16 @@ if (empty($data['meetings'])) {
         $totalDurations['meetings'] += $meetingData['meeting']->duration;
         $totalDurations['user'] += min([$meetingData['meeting']->duration, $meetingData['users'][$userid]->mergedDuration]);
         $totalDurations['provided'] += ($meetingData['meeting']->start_time <= time() ? $meetingData['meeting']->duration : 0);
+        $userDuration = min([$meetingData['meeting']->duration, $meetingData['users'][$userid]->mergedDuration]) ?? 0;
 
-        $divAttrs = (!$isTeacher || empty($sessions)) ? [] : [
+        $divAttrs = (!$isTeacher || empty($sessions) || $userDuration <=0) ? [] : [
             'data-toggle' => 'collapse',
             'data-target' => '#tab-' . $meetingData['meeting']->id,
             'aria-expanded' => $expandFirst ? 'true' : 'false',
             'aria-controls' => 'tab-' . $meetingData['meeting']->id,
         ];
-        $divClass = (!$isTeacher || empty($sessions)) ? '' : ' accordion-heading';
-        $cardHeaderAttrs = (!$isTeacher || empty($sessions)) ? null : [
+        $divClass = (!$isTeacher || empty($sessions) || $userDuration <=0) ? '' : ' accordion-heading';
+        $cardHeaderAttrs = (!$isTeacher || empty($sessions) || $userDuration <=0) ? null : [
             'class' => 'accordion-btn',
         ];
 
@@ -185,9 +186,7 @@ if (empty($data['meetings'])) {
 
             $percentDuration = min([1, $meetingData['users'][$userid]->mergedDuration / $meetingData['meeting']->duration]);
             $a = (object) [
-                'userDuration' => secondsToHMS(
-                    min([$meetingData['meeting']->duration, $meetingData['users'][$userid]->mergedDuration])
-                ),
+                'userDuration' => secondsToHMS($userDuration),
                 'meetingDuration' => secondsToHMS($meetingData['meeting']->duration),
                 'percentDuration' => round(100 * $percentDuration ,1) . '%',
                 'percentClass' => $percentDuration >= 0.8 ? 'pass' : 'fail',
