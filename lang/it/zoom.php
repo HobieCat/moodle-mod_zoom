@@ -30,3 +30,4 @@ $string['ownreportmeetingfooter'] = 'La lezione è durata <strong>{$a->meetingDu
 $string['expectedmeetingduration'] = 'Durata prevista: {$a}';
 $string['ownreportsummary'] = '<p>La durata totale prevista delle lezioni è di <strong>{$a->total}</strong>, sono state erogate <strong>{$a->provided}</strong>.</p><p>Tempo di assenza massimo permesso: <strong>{$a->max_abscence}</strong></p><p>Hai frequentato finora <strong>{$a->user}</strong>, totalizzando <strong>{$a->user_absence}</strong> ore di assenza.</p>';
 $string['ownreportlastupdate'] = 'Dati aggiornati al {$a}';
+$string['ownreportdatawarning'] = 'I dati relativi alla frequenza e alle assenze delle video lezioni vengono aggiornati nelle 24 ore successive.';

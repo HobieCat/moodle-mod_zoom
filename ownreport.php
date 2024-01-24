@@ -207,6 +207,8 @@ if (empty($data['meetings'])) {
         'user' => secondsToHMS($totalDurations['user']),
         'user_absence' => secondsToHMS($totalDurations['provided'] - $totalDurations['user']),
     ];
+
+    echo html_writer::div(get_string('ownreportdatawarning', 'mod_zoom'), 'alert alert-warning');
     echo html_writer::div(get_string('ownreportsummary', 'zoom', $a), 'alert alert-success');
 
     // output details info, with cards and tables
