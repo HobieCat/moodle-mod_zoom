@@ -93,6 +93,7 @@ if (empty($data['meetings'])) {
         'meetings' => 0,
         'user' => 0,
         'provided' => 0,
+        'absencesubtract' => 0,
     ];
 
     if (!empty($data['reportlastupdate'])) {
@@ -111,9 +112,12 @@ if (empty($data['meetings'])) {
         $sessions = $meetingData['sessions'];
 
         $totalDurations['meetings'] += $meetingData['meeting']->duration;
-        $totalDurations['user'] += min([$meetingData['meeting']->duration, $meetingData['users'][$userid]->mergedDuration]);
+        if ($meetingData['meeting']->start_time <= time() && ($data['reportlastupdate'] < $meetingData['meeting']->start_time)) {
+            $totalDurations['absencesubtract'] += $meetingData['meeting']->duration;
+        }
+        $totalDurations['user'] += min([$meetingData['meeting']->duration, $meetingData['users'][$userid]->mergedDuration ?? 0]);
         $totalDurations['provided'] += ($meetingData['meeting']->start_time <= time() ? $meetingData['meeting']->duration : 0);
-        $userDuration = min([$meetingData['meeting']->duration, $meetingData['users'][$userid]->mergedDuration]) ?? 0;
+        $userDuration = min([$meetingData['meeting']->duration, $meetingData['users'][$userid]->mergedDuration ?? 0]) ?? 0;
 
         $divAttrs = (!$isTeacher || empty($sessions) || $userDuration <=0) ? [] : [
             'data-toggle' => 'collapse',
@@ -151,29 +155,24 @@ if (empty($data['meetings'])) {
                 get_string('leavetime', 'mod_zoom'),
                 strtok(get_string('duration', 'mod_zoom'), ' ') . ' (hh:mm:ss)', // first word of string
             ];
+            $table->data = [];
             foreach ($sessions as $uuid => $session) {
                 // participant will be current user only
                 $participants = $session->participants;
-                foreach ($participants as $p) {
-                    if ($p->status == 'in_meeting') {
-                        $row = [];
+                $table->data = array_map(fn ($p) => [
+                    'join' => $p->join_time,
+                    'leave' => $p->leave_time,
+                    'duration' => $p->leave_time - $p->join_time,
+                ], array_filter($participants, fn ($p) => $p->status == 'in_meeting'));
+            }
 
-                        // Join/leave times.
-                        $row[] = userdate($p->join_time, get_string('strftimedatetimeshortaccurate', 'langconfig'));
-                        $row[] = userdate($p->leave_time, get_string('strftimedatetimeshortaccurate', 'langconfig'));
-
-                        // Real Duration, not as if it was computed by other mod_zoom components.
-                        $duration = $p->leave_time - $p->join_time;
-                        // convert duration to hh:mm:ss
-                        $secs = $duration % 60;
-                        $hrs = $duration / 60;
-                        $mins = $hrs % 60;
-                        $hrs = $hrs / 60;
-                        $row[] = secondsToHMS($duration);
-
-                        $table->data[] = $row;
-                    }
-                }
+            if (!empty($table->data)) {
+                usort($table->data, fn ($a, $b) => $a['join'] - $b['join']);
+                $table->data = array_map(fn ($el) => [
+                    userdate($el['join'], get_string('strftimedatetimeshortaccurate', 'langconfig')),
+                    userdate($el['leave'], get_string('strftimedatetimeshortaccurate', 'langconfig')),
+                    secondsToHMS($el['duration']),
+                ], $table->data);
             }
 
             $detailsHtml[$meetingData['meeting']->id] .= html_writer::div(
@@ -201,11 +200,13 @@ if (empty($data['meetings'])) {
     }
 
     $a = (object) [
+        'today' => userdate(time(), get_string('strftimedate', 'langconfig')),
+        'reportlastupdate' => userdate($data['reportlastupdate'], get_string('strftimedate', 'langconfig')),
         'total' => secondsToHMS(ZOOM_DEFAULT_COURSE_DURATION),
         'provided' => secondsToHMS($totalDurations['provided']),
         'max_abscence' => secondsToHMS(ZOOM_MAX_ALLOWED_ABSENCE),
         'user' => secondsToHMS($totalDurations['user']),
-        'user_absence' => secondsToHMS($totalDurations['provided'] - $totalDurations['user']),
+        'user_absence' => secondsToHMS($totalDurations['provided'] - $totalDurations['user'] - $totalDurations['absencesubtract']),
     ];
 
     echo html_writer::div(get_string('ownreportdatawarning', 'mod_zoom'), 'alert alert-warning');
