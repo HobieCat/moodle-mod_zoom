@@ -1490,9 +1490,11 @@ function zoom_is_user_visible(int $userid, int $zoomid, int $courseid = null) {
  * @param int $courseid the id of the course to build the report for
  * @param string $calcMinutesWith calc minutes using 'duration' or 'total_minutes' property. Defaults to 'duration'
  * @param boolean $withNonMoodle true to include non moodle users in the data. Defaults to false
+ * @param int $userid load the report data for the passed userid
+ * @param int $skipRows number of meetings to skip, ordered by the meeting with the lowest 'start_time'
  * @return array data to build the custom zoom report
  */
-function get_zoom_report_data($courseid, $calcMinutesWith = 'duration', $withNonMoodle = false, $userid = false) {
+function get_zoom_report_data($courseid, $calcMinutesWith = 'duration', $withNonMoodle = false, $userid = false, $skipRows = 1) {
     global $DB;
 
     $goodStatuses = [
@@ -1501,7 +1503,19 @@ function get_zoom_report_data($courseid, $calcMinutesWith = 'duration', $withNon
 
     $data = [];
     // Find all meetings for course.
-    $meetings = $DB->get_records_select('zoom', 'course=:courseid', ['courseid' => $courseid], '', 'id,course,name,duration,start_time,end_date_time');
+    $meetings = $DB->get_records_select(
+        'zoom',
+        'course=:courseid',
+        ['courseid' => $courseid],
+        '`start_time` ASC',
+        'id,course,name,duration,start_time,end_date_time'
+    );
+
+    while ($skipRows--) {
+        reset($meetings);
+        unset($meetings[key($meetings)]);
+    }
+
     // filter out meetings not visibile to the user, if we're bulding an ownreport (i.e. $userid is not false)
     if ($userid) {
         $meetings = array_filter(
@@ -1569,6 +1583,7 @@ function get_zoom_report_data($courseid, $calcMinutesWith = 'duration', $withNon
             foreach ($sessions as $uuid => $session) {
                 if (property_exists($session, 'participants') && !empty($session->participants)) {
                     foreach ($session->participants as $participant) {
+                        $participant->name = trim($participant->name);
                         /**
                          * WARNING:
                          * Unless $withNonMoodle is true, discard users without
@@ -1744,7 +1759,7 @@ function mergeDateRanges($ranges = []) {
 function secondsToHMS(int $seconds = 0, $asstring = true) {
     $ret = [
         'hrs' => (int) floor($seconds / 3600),
-        'mins' => (int) floor(($seconds / 60) % 60),
+        'mins' => (int) floor((int)($seconds / 60) % 60),
         'secs' => (int) $seconds % 60,
     ];
     if ($asstring) {
