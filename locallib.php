@@ -1620,17 +1620,17 @@ function get_zoom_report_data($courseid, $calcMinutesWith = 'duration', $withNon
                         }
                     }
 
-                    foreach ($userTimes as $userid => $range) {
+                    foreach ($userTimes as $useridTemp => $range) {
                         // sum all user merged ranges to build the mergedDuration
-                        $users[$userid]->mergedDuration = array_reduce(
+                        $users[$useridTemp]->mergedDuration = array_reduce(
                             mergeDateRanges($range),
                             fn ($carry, $item) => $carry += $item['leave'] - $item['join'],
                             0
                         );
                         // add user roles in the course
-                        $users[$userid]->roles = array_map(
+                        $users[$useridTemp]->roles = array_map(
                             fn ($el) => $el->shortname,
-                            get_user_roles($coursecontext, $userid)
+                            get_user_roles($coursecontext, $useridTemp)
                         );
                     }
                 }
