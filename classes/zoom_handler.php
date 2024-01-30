@@ -38,7 +38,10 @@ class zoom_handler
      */
     public static function loggedout(user_loggedout $event)
     {
-        $logoutUrl = new moodle_url('/login/logout.php', ['sesskey' => $_GET['sesskey']]);
+        $logoutUrl = new moodle_url('/login/logout.php');
+        if (isset($_GET['sesskey'])) {
+            $logoutUrl->param('sesskey', $_GET['sesskey']);
+        }
         $htmllang = '';
         $head = '<meta http-equiv="refresh" content="3; url=' . $logoutUrl . '" />';
 
