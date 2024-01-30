@@ -31,3 +31,5 @@ $string['expectedmeetingduration'] = 'Durata prevista: {$a}';
 $string['ownreportsummary'] = '<ul><li>La durata totale prevista delle lezioni è di <strong>{$a->total}</strong>.</li><li>Tempo di assenza massimo permesso: <strong>{$a->max_abscence}</strong></li><li>Al {$a->today} sono state erogate <strong>{$a->provided}</strong> ore.</li><li>Al {$a->reportlastupdate} ne risultano frequentate <strong>{$a->user}</strong>, per un totale di <strong>{$a->user_absence}</strong> ore di assenza.</li></ul>';
 $string['ownreportlastupdate'] = 'Dati aggiornati al {$a}';
 $string['ownreportdatawarning'] = '<strong>I dati relativi alla frequenza e alle assenze delle video lezioni vengono aggiornati nelle 24 ore successive.</strong><br/>N.B.: La giornata inaugurale non è conteggiata ai fini del calcolo del monte ore.';
+$string['lastjoin'] = 'Ultimo partecipante';
+$string['lastjoin_desc'] = 'Con quanto ritardo un utente può partecipare al meeting (minuti dopo la fine).';

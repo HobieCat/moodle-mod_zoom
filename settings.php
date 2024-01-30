@@ -211,6 +211,15 @@ if ($ADMIN->fulltree) {
     );
     $settings->add($firstabletojoin);
 
+    $lastabletojoin = new admin_setting_configselect(
+        'zoom/lastabletojoin',
+        get_string('lastjoin', 'mod_zoom'),
+        get_string('lastjoin_desc', 'mod_zoom'),
+        15,
+        $jointimeselect
+    );
+    $settings->add($lastabletojoin);
+
     if ($moodlehashideif) {
         $displayleadtime = new admin_setting_configcheckbox(
             'zoom/displayleadtime',

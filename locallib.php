@@ -368,8 +368,8 @@ function zoom_get_state($zoom) {
     $firstavailable = $starttime - ($config->firstabletojoin * 60);
 
     // Calculate the time when the meeting ends to be available,
-    // based on the next occurrence start time and the meeting duration.
-    $lastavailable = $starttime + $zoom->duration;
+    // based on the next occurrence start time, the meeting duration and the general meeting tail time.
+    $lastavailable = $starttime + $zoom->duration + ($config->lastabletojoin * 60);
 
     // Determine if the meeting is in progress.
     $inprogress = ($firstavailable <= $now && $now <= $lastavailable);
