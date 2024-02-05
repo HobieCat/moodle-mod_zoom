@@ -1497,9 +1497,7 @@ function zoom_is_user_visible(int $userid, int $zoomid, int $courseid = null) {
 function get_zoom_report_data($courseid, $calcMinutesWith = 'duration', $withNonMoodle = false, $userid = false, $skipRows = 1) {
     global $DB;
 
-    $goodStatuses = [
-        'in_meeting',
-    ];
+    $goodStatuses = get_report_good_status();
 
     $data = [];
     // Find all meetings for course.
@@ -1747,6 +1745,170 @@ function mergeDateRanges($ranges = []) {
     }
 
     return $retVal;
+}
+
+/**
+ * Gets the good statuses that will go into the reports.
+ *
+ * @return array
+ */
+function get_report_good_status() {
+    return [
+        'in_meeting',
+        'in_breakout_room'
+    ];
+}
+
+/**
+ * Updates the zoom report (zoom_meeting_participants table) from
+ * a CSV downloaded from the zoom reports dashboard.
+ *
+ * @param string|resource $filename a fullpath string or a file pointer resource.
+ * @return array results array with keys: 'processedRows', 'skipped', 'added', 'notadded'.
+ */
+function updateReportFromQOSCSV($filename) {
+    /**
+     * @var \moodle_database $DB
+     */
+    global $DB;
+
+    /**
+     * @var \DateTimeImmutable $startDate
+     */
+    $startDate = null;
+    $meetingID = null;
+    $detailsID = null;
+    $zoomuserIDS = [];
+    $added = 0;
+    $notadded = 0;
+    $skipped = 0;
+    $currline = 1;
+
+    if (get_resource_type($filename) !== 'stream') {
+        $file = fopen($filename, 'r');
+    } else {
+        $file = $filename;
+    }
+
+    while (($line = fgetcsv($file)) !== FALSE) {
+        $linestr = sprintf("[line %4d]", $currline);
+        if ($currline == 2) {
+            $meetingID = trim(str_replace(' ', '', $line[0]));
+            $startDate = DateTime::createFromFormat('M d, Y h:i a', $line[6]);
+            $startDate->setTime(0, 0, 0);
+            $startDate = DateTimeImmutable::createFromMutable($startDate);
+            $tmp = $DB->get_records_select(
+                'zoom_meeting_details',
+                'meeting_id=:meetingid',
+                ['meetingid' => $meetingID],
+                'id DESC',
+                'id',
+                0,
+                1
+            );
+            if (!empty($tmp)) {
+                $tmp = reset($tmp);
+                $detailsID = (int)$tmp->id;
+                mtrace("$linestr meeting id: " . $meetingID);
+                mtrace("$linestr meeting details id: " . ($detailsID ?? "NOT FOUND"));
+                mtrace("$linestr done with line $currline, skipping.");
+            } else {
+                throw new dml_missing_record_exception(
+                    'zoom_meeting_details',
+                    'SELECT id FROM zoom_meeting_details WHERE meeting_id=:meetingid',
+                     ['meetingid' => $meetingID]);
+            }
+            $skipped++;
+        } else if (!empty($detailsID) && $currline >= 5) {
+            // Column 'C' is the user email.
+            $email = trim($line[2]);
+            if (!empty($email)) {
+                // Load userid and zoomuserid if not found.
+                if (!isset($zoomuserIDS[$email])) {
+                    $tmp = $DB->get_records_select(
+                        'zoom_meeting_participants',
+                        'user_email=:email AND detailsid=:detailsid',
+                        ['email' => $email, 'detailsid' => $detailsID],
+                        'id DESC',
+                        'userid, zoomuserid, name',
+                        0,
+                        1
+                    );
+                    if (!empty($tmp)) {
+                        $tmp = reset($tmp);
+                        $zoomuserIDS[$email] = $tmp;
+                    }
+                }
+
+                if (!isset($zoomuserIDS[$email])) {
+                    mtrace("$linestr $email with details id: $detailsID NOT FOUND IN zoom_meeting_participants, skipping.");
+                    $skipped++;
+                } else {
+                    $waitingRoom = strtolower(trim($line[15]));
+                    if ($waitingRoom == 'no') {
+
+                        // Build join_time, leave_time and save.
+                        $join = preg_replace('/\([^\)]*\)/', '', $line[13]);
+                        $jointime = DateTime::createFromFormat('h:i A', $join);
+                        $joinDate = DateTime::createFromImmutable($startDate);
+                        $joinDate->setTime($jointime->format('H'), $jointime->format('i'));
+
+                        $leave = preg_replace('/\([^\)]*\)/', '', $line[14]);
+                        $leavetime = DateTime::createFromFormat('h:i a', $leave);
+                        $leaveDate = DateTime::createFromImmutable($startDate);
+                        $leaveDate->setTime($leavetime->format('H'), $leavetime->format('i'));
+
+                        $sprintfStr = " ADDED: [%6d] %s(%s) - join %s, leave %s (duration: %d)";
+                        if ($leaveDate->getTimestamp() - $joinDate->getTimestamp() > 0) {
+                            $DB->insert_record('zoom_meeting_participants', [
+                                'userid' => $zoomuserIDS[$email]->userid,
+                                'zoomuserid' => $zoomuserIDS[$email]->zoomuserid,
+                                'user_email' => $email,
+                                'join_time' => $joinDate->getTimestamp(),
+                                'leave_time' => $leaveDate->getTimestamp(),
+                                'duration' => $leaveDate->getTimestamp() - $joinDate->getTimestamp(),
+                                'name' => $zoomuserIDS[$email]->name,
+                                'detailsid' => $detailsID,
+                                'status' => 'in_breakout_room',
+                            ]);
+                            $added++;
+                        } else {
+                            $sprintfStr = " NOT" . $sprintfStr;
+                            $notadded++;
+                        }
+                        mtrace(sprintf(
+                            $linestr . $sprintfStr,
+                            $zoomuserIDS[$email]->userid,
+                            $zoomuserIDS[$email]->name,
+                            $email,
+                            userdate($joinDate->getTimestamp(), get_string('strftimedatetimeshortaccurate', 'langconfig')),
+                            userdate($leaveDate->getTimestamp(), get_string('strftimedatetimeshortaccurate', 'langconfig')),
+                            $leaveDate->getTimestamp() - $joinDate->getTimestamp()
+                        ));
+                    } else {
+                        mtrace("$linestr $email with details id: $detailsID, had waitingroom to $waitingRoom, skipped.");
+                        $skipped++;
+                    }
+                }
+            }
+        } else {
+            $firstcol = reset($line);
+            if (empty($firstcol)) {
+                mtrace ("$linestr empty line, skipped.");
+            } else {
+                mtrace("$linestr line with firstcol value '$firstcol' skipped.");
+            }
+            $skipped++;
+        }
+        $currline++;
+    }
+    fclose($file);
+    return [
+        'processedRows' => $currline - 1,
+        'skipped' => $skipped,
+        'added' => $added,
+        'notadded' => $notadded,
+    ];
 }
 
 /**
