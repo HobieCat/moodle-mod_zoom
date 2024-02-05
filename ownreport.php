@@ -95,6 +95,7 @@ if (empty($data['meetings'])) {
         'provided' => 0,
         'absencesubtract' => 0,
     ];
+    $goodStatuses = get_report_good_status();
 
     if (!empty($data['reportlastupdate'])) {
         echo html_writer::tag(
@@ -163,7 +164,7 @@ if (empty($data['meetings'])) {
                     'join' => $p->join_time,
                     'leave' => $p->leave_time,
                     'duration' => $p->leave_time - $p->join_time,
-                ], array_filter($participants, fn ($p) => $p->status == 'in_meeting'));
+                ], array_filter($participants, fn ($p) => in_array($p->status, $goodStatuses)));
             }
 
             if (!empty($table->data)) {
