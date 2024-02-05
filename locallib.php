@@ -1841,7 +1841,7 @@ function updateReportFromQOSCSV($filename) {
                 }
 
                 if (!isset($zoomuserIDS[$email])) {
-                    mtrace("$linestr $email with details id: $detailsID NOT FOUND IN zoom_meeting_participants, skipping.");
+                    mtrace("$linestr $email with details id: $detailsID NOT FOUND (or has null userid) IN zoom_meeting_participants, skipping.");
                     $skipped++;
                 } else {
                     $waitingRoom = strtolower(trim($line[15]));
@@ -1849,18 +1849,26 @@ function updateReportFromQOSCSV($filename) {
 
                         // Build join_time, leave_time and save.
                         $join = preg_replace('/\([^\)]*\)/', '', $line[13]);
-                        $jointime = DateTime::createFromFormat('h:i A', $join);
-                        $joinDate = DateTime::createFromImmutable($startDate);
-                        $joinDate->setTime($jointime->format('H'), $jointime->format('i'));
+                        if (!empty($join)) {
+                            $jointime = DateTime::createFromFormat('h:i A', $join);
+                            $joinDate = DateTime::createFromImmutable($startDate);
+                            $joinDate->setTime($jointime->format('H'), $jointime->format('i'));
+                        } else {
+                            $joinDate = null;
+                        }
 
                         $leave = preg_replace('/\([^\)]*\)/', '', $line[14]);
-                        $leavetime = DateTime::createFromFormat('h:i a', $leave);
-                        $leaveDate = DateTime::createFromImmutable($startDate);
-                        $leaveDate->setTime($leavetime->format('H'), $leavetime->format('i'));
+                        if (!empty($leave)) {
+                            $leavetime = DateTime::createFromFormat('h:i a', $leave);
+                            $leaveDate = DateTime::createFromImmutable($startDate);
+                            $leaveDate->setTime($leavetime->format('H'), $leavetime->format('i'));
+                        } else {
+                            $leaveDate = null;
+                        }
 
                         $sprintfStr = " ADDED: [%6d] %s(%s) - join %s, leave %s (duration: %d)";
-                        if ($leaveDate->getTimestamp() - $joinDate->getTimestamp() > 0) {
-                            $DB->insert_record('zoom_meeting_participants', [
+                        if (!is_null($joinDate) && !is_null($leaveDate) && $leaveDate->getTimestamp() - $joinDate->getTimestamp() > 0) {
+                            $insertData = [
                                 'userid' => $zoomuserIDS[$email]->userid,
                                 'zoomuserid' => $zoomuserIDS[$email]->zoomuserid,
                                 'user_email' => $email,
@@ -1870,8 +1878,14 @@ function updateReportFromQOSCSV($filename) {
                                 'name' => $zoomuserIDS[$email]->name,
                                 'detailsid' => $detailsID,
                                 'status' => 'in_breakout_room',
-                            ]);
-                            $added++;
+                            ];
+                            if ($DB->count_records('zoom_meeting_participants', $insertData) > 0) {
+                                $sprintfStr = " DUPLICATE NOT" . $sprintfStr;
+                                $notadded++;
+                            } else {
+                                $DB->insert_record('zoom_meeting_participants', $insertData);
+                                $added++;
+                            }
                         } else {
                             $sprintfStr = " NOT" . $sprintfStr;
                             $notadded++;
@@ -1881,9 +1895,9 @@ function updateReportFromQOSCSV($filename) {
                             $zoomuserIDS[$email]->userid,
                             $zoomuserIDS[$email]->name,
                             $email,
-                            userdate($joinDate->getTimestamp(), get_string('strftimedatetimeshortaccurate', 'langconfig')),
-                            userdate($leaveDate->getTimestamp(), get_string('strftimedatetimeshortaccurate', 'langconfig')),
-                            $leaveDate->getTimestamp() - $joinDate->getTimestamp()
+                            is_null($joinDate) ? 'EMPTY' : userdate($joinDate->getTimestamp(), get_string('strftimedatetimeshortaccurate', 'langconfig')),
+                            is_null($leaveDate) ? 'EMPTY' : userdate($leaveDate->getTimestamp(), get_string('strftimedatetimeshortaccurate', 'langconfig')),
+                            (is_null($joinDate) || is_null($leaveDate)) ? 'UNKNOWN' : $leaveDate->getTimestamp() - $joinDate->getTimestamp()
                         ));
                     } else {
                         mtrace("$linestr $email with details id: $detailsID, had waitingroom to $waitingRoom, skipped.");
