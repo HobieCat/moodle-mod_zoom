@@ -1827,7 +1827,7 @@ function updateReportFromQOSCSV($filename) {
                 if (!isset($zoomuserIDS[$email])) {
                     $tmp = $DB->get_records_select(
                         'zoom_meeting_participants',
-                        'user_email=:email AND detailsid=:detailsid',
+                        '`userid` IS NOT NULL AND user_email=:email AND detailsid=:detailsid',
                         ['email' => $email, 'detailsid' => $detailsID],
                         'id DESC',
                         'userid, zoomuserid, name',
