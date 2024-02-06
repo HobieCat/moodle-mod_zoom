@@ -1866,7 +1866,7 @@ function updateReportFromQOSCSV($filename) {
                             $leaveDate = null;
                         }
 
-                        $sprintfStr = " ADDED: [%6d] %s(%s) - join %s, leave %s (duration: %d)";
+                        $sprintfStr = " ADDED: [%6d] %s(%s) - join %s, leave %s (duration: %s)";
                         if (!is_null($joinDate) && !is_null($leaveDate) && $leaveDate->getTimestamp() - $joinDate->getTimestamp() > 0) {
                             $insertData = [
                                 'userid' => $zoomuserIDS[$email]->userid,
@@ -1879,7 +1879,15 @@ function updateReportFromQOSCSV($filename) {
                                 'detailsid' => $detailsID,
                                 'status' => 'in_breakout_room',
                             ];
-                            if ($DB->count_records('zoom_meeting_participants', $insertData) > 0) {
+
+                            $count = (int) $DB->get_record_sql(
+                                "SELECT COUNT(`id`) AS `pcount` FROM {zoom_meeting_participants} " .
+                                "WHERE 1 AND " .
+                                implode(" AND ", array_map(fn ($el) => "`$el`=:$el", array_keys($insertData))),
+                                $insertData
+                            )->pcount ?? 0;
+
+                            if ($count > 0) {
                                 $sprintfStr = " DUPLICATE NOT" . $sprintfStr;
                                 $notadded++;
                             } else {
