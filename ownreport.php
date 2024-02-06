@@ -103,7 +103,7 @@ if (empty($data['meetings'])) {
             get_string(
                 'ownreportlastupdate',
                 'mod_zoom',
-                userdate($data['reportlastupdate'], get_string('strftimedate', 'langconfig'))
+                userdate($data['reportlastupdate'], '%d %b %Y, %H:%M', false, false)
             )
         );
     }
@@ -201,8 +201,8 @@ if (empty($data['meetings'])) {
     }
 
     $a = (object) [
-        'today' => userdate(time(), get_string('strftimedate', 'langconfig')),
-        'reportlastupdate' => userdate($data['reportlastupdate'], get_string('strftimedate', 'langconfig')),
+        'today' => userdate(time(), '%d %b %Y, %H:%M', false, false),
+        'reportlastupdate' => userdate($data['reportlastupdate'], '%d %b %Y, %H:%M', false, false),
         'total' => secondsToHMS(ZOOM_DEFAULT_COURSE_DURATION),
         'provided' => secondsToHMS($totalDurations['provided']),
         'max_abscence' => secondsToHMS(ZOOM_MAX_ALLOWED_ABSENCE),
