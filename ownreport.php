@@ -38,6 +38,16 @@ $course = $DB->get_record('course', ['id' => $id], '*', MUST_EXIST);
 $ccontext = context_course::instance($course->id);
 $pageurl = new moodle_url('/mod/zoom/ownreport.php', ['id' => $course->id]);
 $pageheading = get_string('viewownreportlink', 'mod_zoom');
+
+if (empty($userid)) {
+    $userid = $USER->id;
+} else {
+    // Check capability.
+    require_capability('mod/zoom:addinstance', $ccontext);
+    $pageurl->param('userid', $userid);
+}
+$pageheading .= ' '.strtolower(get_string('for')) . ' ' . fullname($DB->get_record('user', ['id' => $userid]));
+
 \mod_customcert\page_helper::page_setup($pageurl, $ccontext, "$course->shortname: $pageheading");
 
 $PAGE->set_title("$course->shortname: $pageheading");
@@ -54,15 +64,6 @@ $isTeacher = is_siteadmin() || count(array_intersect(
     array_map(fn($el) => $el->shortname, get_user_roles($ccontext, $USER->id, false)),
     ['editingteacher', 'teacher']
 )) > 0;
-
-if (empty($userid)) {
-    $userid = $USER->id;
-} else {
-    // Check capability.
-    require_capability('mod/zoom:addinstance', $ccontext);
-    $user = $DB->get_record('user', ['id' => $userid]);
-    $pageheading .= ' '.strtolower(get_string('for')) . ' ' . fullname($user);
-}
 
 $maskparticipantdata = get_config('zoom', 'maskparticipantdata');
 // If participant data is masked then display a message stating as such and be done with it.
@@ -90,11 +91,11 @@ if (empty($data['meetings'])) {
     $expandFirst = false;
     $detailsHtml = [];
     $totalDurations = [
-        'meetings' => 0,
         'user' => 0,
         'provided' => 0,
         'absencesubtract' => 0,
     ];
+    $lastEndedMeeting = 0;
     $goodStatuses = get_report_good_status();
 
     if (!empty($data['reportlastupdate'])) {
@@ -112,13 +113,21 @@ if (empty($data['meetings'])) {
         // output a table foreach course meeting.
         $sessions = $meetingData['sessions'];
 
-        $totalDurations['meetings'] += $meetingData['meeting']->duration;
-        if ($meetingData['meeting']->start_time <= time() && ($data['reportlastupdate'] < $meetingData['meeting']->start_time)) {
-            $totalDurations['absencesubtract'] += $meetingData['meeting']->duration;
+        $now = time();
+        $started = $meetingData['meeting']->start_time <= $now;
+        $ended = $started && ($meetingData['meeting']->start_time + $meetingData['meeting']->duration <= $now);
+
+        if (!empty($sessions)) {
+            if ($ended) {
+                $lastEndedMeeting = max($lastEndedMeeting, $meetingData['meeting']->start_time + $meetingData['meeting']->duration);
+                $totalDurations['provided'] += $meetingData['meeting']->duration;
+                if ($data['reportlastupdate'] < $meetingData['meeting']->start_time) {
+                    $totalDurations['absencesubtract'] += $meetingData['meeting']->duration;
+                }
+            }
+            $totalDurations['user'] += min([$meetingData['meeting']->duration, $meetingData['users'][$userid]->mergedDuration ?? 0]);
+            $userDuration = min([$meetingData['meeting']->duration, $meetingData['users'][$userid]->mergedDuration ?? 0]) ?? 0;
         }
-        $totalDurations['user'] += min([$meetingData['meeting']->duration, $meetingData['users'][$userid]->mergedDuration ?? 0]);
-        $totalDurations['provided'] += ($meetingData['meeting']->start_time <= time() ? $meetingData['meeting']->duration : 0);
-        $userDuration = min([$meetingData['meeting']->duration, $meetingData['users'][$userid]->mergedDuration ?? 0]) ?? 0;
 
         $divAttrs = (!$isTeacher || empty($sessions) || $userDuration <=0) ? [] : [
             'data-toggle' => 'collapse',
@@ -184,7 +193,7 @@ if (empty($data['meetings'])) {
                 ]
             );
 
-            $percentDuration = min([1, $meetingData['users'][$userid]->mergedDuration / $meetingData['meeting']->duration]);
+            $percentDuration = min([1, $meetingData['users'][$userid]->mergedDuration ?? 0 / $meetingData['meeting']->duration]);
             $a = (object) [
                 'userDuration' => secondsToHMS($userDuration),
                 'meetingDuration' => secondsToHMS($meetingData['meeting']->duration),
@@ -201,8 +210,8 @@ if (empty($data['meetings'])) {
     }
 
     $a = (object) [
-        'today' => userdate(time(), '%d %b %Y, %H:%M', false, false),
-        'reportlastupdate' => userdate($data['reportlastupdate'], '%d %b %Y, %H:%M', false, false),
+        'today' => userdate($lastEndedMeeting, '%d %b %Y %H:%M', false, false),
+        'reportlastupdate' => userdate($data['reportlastupdate'], '%d %b %Y %H:%M', false, false),
         'total' => secondsToHMS(ZOOM_DEFAULT_COURSE_DURATION),
         'provided' => secondsToHMS($totalDurations['provided']),
         'max_abscence' => secondsToHMS(ZOOM_MAX_ALLOWED_ABSENCE),
