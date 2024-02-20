@@ -119,7 +119,7 @@ define('ZOOM_REGISTRATION_MANUAL', 1);
 define('ZOOM_REGISTRATION_OFF', 2);
 // Meeting SDK for web version.
 // see: https://developers.zoom.us/docs/meeting-sdk/minimum-version/
-define('ZOOM_MEETING_SDK_WEB_VERSION', '2.18.2');
+define('ZOOM_MEETING_SDK_WEB_VERSION', '3.1.6');
 // custom constants
 define ('ZOOM_DEFAULT_COURSE_DURATION', 691200);  // 192 hours in seconds
 define ('ZOOM_MAX_ALLOWED_ABSENCE', 0.2 * ZOOM_DEFAULT_COURSE_DURATION); // 20%
