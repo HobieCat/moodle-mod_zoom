@@ -163,7 +163,8 @@ if (empty($data['meetings'])) {
             $table->head = [
                 get_string('jointime', 'mod_zoom'),
                 get_string('leavetime', 'mod_zoom'),
-                strtok(get_string('duration', 'mod_zoom'), ' ') . ' (hh:mm:ss)', // first word of string
+                strtok(get_string('duration', 'mod_zoom'), ' ') . ' (hh:mm)', // first word of string
+                get_string('status', 'mod_zoom'),
             ];
             $table->data = [];
             foreach ($sessions as $uuid => $session) {
@@ -173,15 +174,17 @@ if (empty($data['meetings'])) {
                     'join' => $p->join_time,
                     'leave' => $p->leave_time,
                     'duration' => $p->leave_time - $p->join_time,
+                    'status' => $p->status,
                 ], array_filter($participants, fn ($p) => in_array($p->status, $goodStatuses)));
             }
 
             if (!empty($table->data)) {
                 usort($table->data, fn ($a, $b) => $a['join'] - $b['join']);
                 $table->data = array_map(fn ($el) => [
-                    userdate($el['join'], get_string('strftimedatetimeshortaccurate', 'langconfig')),
-                    userdate($el['leave'], get_string('strftimedatetimeshortaccurate', 'langconfig')),
+                    userdate($el['join'], get_string('strftimetime24', 'langconfig')),
+                    userdate($el['leave'], get_string('strftimetime24', 'langconfig')),
                     secondsToHMS($el['duration']),
+                    $el['status'],
                 ], $table->data);
             }
 
