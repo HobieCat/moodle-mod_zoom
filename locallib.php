@@ -1548,7 +1548,11 @@ function get_zoom_report_data($courseid, $calcMinutesWith = 'duration', $withNon
                 'sessions' => null,
                 'users' => null,
             ];
-
+            /**
+             * Meeting start and end timestamp.
+             */
+            $meetingStartTS = (int) $meeting->start_time;
+            $meetingEndTS = $meetingStartTS + (int) $meeting->duration;
             /**
              * Sessions data.
              * code from function zoom_get_sessions_for_display in zoom module's locallib.php
@@ -1557,7 +1561,21 @@ function get_zoom_report_data($courseid, $calcMinutesWith = 'duration', $withNon
             foreach ($sessions as $uuid => $session) {
                 $tmpParticipants = zoom_get_participants_report($session->id);
                 if ($userid) {
-                    $tmpParticipants = array_filter($tmpParticipants, fn($el) => $el->userid == $userid);
+                    $tmpParticipants = array_map(
+                        function ($el) use ($meetingStartTS, $meetingEndTS) {
+                            /**
+                             * To round up or down to the closest minute use round.
+                             * To round down to the previous minute use floor.
+                             * To round up to the next minute use ceil.
+                             */
+                            $el->join_time = max($meetingStartTS, (int) (floor($el->join_time / 60)*60));
+                            $el->leave_time = min($meetingEndTS, (int) (ceil($el->leave_time / 60)*60));
+                            return $el;
+                        },
+                        array_filter($tmpParticipants, fn ($el) => $el->userid == $userid)
+                    );
+                    // After rounding join and leave time, remove invalid elements.
+                    $tmpParticipants = array_filter($tmpParticipants, fn ($el) => $el->leave_time >= $el->join_time);
                 }
                 $sessions[$uuid]->uniqueParticipants = get_unique_participants_count($tmpParticipants);
                 $sessions[$uuid]->participants = $tmpParticipants;
@@ -1755,7 +1773,8 @@ function mergeDateRanges($ranges = []) {
 function get_report_good_status() {
     return [
         'in_meeting',
-        'in_breakout_room'
+        'in_breakout_room',
+        'in_waiting_room',
     ];
 }
 
@@ -1940,14 +1959,21 @@ function updateReportFromQOSCSV($filename) {
  * @param bool $asstring true to return a formatted string instead of an array
  * @return array with keys: 'hrs', 'mins', 'secs'
  */
-function secondsToHMS(int $seconds = 0, $asstring = true) {
+function secondsToHMS(int $seconds = 0, $asstring = true, $withseconds = false) {
     $ret = [
         'hrs' => (int) floor($seconds / 3600),
-        'mins' => (int) floor((int)($seconds / 60) % 60),
+        'mins' => (int) floor(($seconds / 60) % 60),
         'secs' => (int) $seconds % 60,
     ];
+    if (!$withseconds) {
+        unset($ret['secs']);
+    }
     if ($asstring) {
-        return vsprintf("%02d:%02d:%02d", $ret);
+        if (!$withseconds) {
+            return vsprintf("%02d:%02d", $ret);
+        } else {
+            return vsprintf("%02d:%02d:%02d", $ret);
+        }
     } else {
         return $ret;
     }
