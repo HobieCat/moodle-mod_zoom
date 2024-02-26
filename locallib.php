@@ -1561,22 +1561,24 @@ function get_zoom_report_data($courseid, $calcMinutesWith = 'duration', $withNon
             foreach ($sessions as $uuid => $session) {
                 $tmpParticipants = zoom_get_participants_report($session->id);
                 if ($userid) {
-                    $tmpParticipants = array_map(
-                        function ($el) use ($meetingStartTS, $meetingEndTS) {
-                            /**
-                             * To round up or down to the closest minute use round.
-                             * To round down to the previous minute use floor.
-                             * To round up to the next minute use ceil.
-                             */
-                            $el->join_time = max($meetingStartTS, (int) (floor($el->join_time / 60)*60));
-                            $el->leave_time = min($meetingEndTS, (int) (ceil($el->leave_time / 60)*60));
-                            return $el;
-                        },
-                        array_filter($tmpParticipants, fn ($el) => $el->userid == $userid)
-                    );
-                    // After rounding join and leave time, remove invalid elements.
-                    $tmpParticipants = array_filter($tmpParticipants, fn ($el) => $el->leave_time >= $el->join_time);
+                    $tmpParticipants = array_filter($tmpParticipants, fn ($el) => $el->userid == $userid);
                 }
+                $tmpParticipants = array_map(
+                    function ($el) use ($meetingStartTS, $meetingEndTS) {
+                        /**
+                         * To round up or down to the closest minute use round.
+                         * To round down to the previous minute use floor.
+                         * To round up to the next minute use ceil.
+                         */
+                        $el->join_time = max($meetingStartTS, (int) (floor($el->join_time / 60)*60));
+                        $el->leave_time = min($meetingEndTS, (int) (ceil($el->leave_time / 60)*60));
+                        return $el;
+                    },
+                    $tmpParticipants
+                );
+                // After rounding join and leave time, remove invalid elements.
+                $tmpParticipants = array_filter($tmpParticipants, fn ($el) => $el->leave_time >= $el->join_time);
+
                 $sessions[$uuid]->uniqueParticipants = get_unique_participants_count($tmpParticipants);
                 $sessions[$uuid]->participants = $tmpParticipants;
                 $sessions[$uuid]->actual_duration = $session->end_time - $session->start_time;
