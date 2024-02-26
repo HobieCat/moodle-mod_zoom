@@ -1964,7 +1964,7 @@ function updateReportFromQOSCSV($filename) {
 function secondsToHMS(int $seconds = 0, $asstring = true, $withseconds = false) {
     $ret = [
         'hrs' => (int) floor($seconds / 3600),
-        'mins' => (int) floor(($seconds / 60) % 60),
+        'mins' => (int) floor((int) ($seconds / 60) % 60),
         'secs' => (int) $seconds % 60,
     ];
     if (!$withseconds) {
