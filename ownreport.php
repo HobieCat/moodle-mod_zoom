@@ -223,7 +223,7 @@ if (empty($data['meetings'])) {
     ];
 
     echo html_writer::div(get_string('ownreportdatawarning', 'mod_zoom'), 'alert alert-warning');
-    echo html_writer::div(get_string('ownreportsummary', 'zoom', $a), 'alert alert-success');
+    echo html_writer::div(get_string('ownreportsummary', 'mod_zoom', $a), 'alert alert-success');
 
     // output details info, with cards and tables
     foreach ($detailsHtml as $detail) {
