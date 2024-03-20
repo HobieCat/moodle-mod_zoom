@@ -169,13 +169,15 @@ if (empty($data['meetings'])) {
             $table->data = [];
             foreach ($sessions as $uuid => $session) {
                 // participant will be current user only
-                $participants = $session->participants;
-                $table->data = array_map(fn ($p) => [
-                    'join' => $p->join_time,
-                    'leave' => $p->leave_time,
-                    'duration' => $p->leave_time - $p->join_time,
-                    'status' => $p->status,
-                ], array_filter($participants, fn ($p) => in_array($p->status, $goodStatuses)));
+                $table->data = array_merge(
+                    $table->data,
+                    array_map(fn ($p) => [
+                        'join' => $p->join_time,
+                        'leave' => $p->leave_time,
+                        'duration' => $p->leave_time - $p->join_time,
+                        'status' => $p->status,
+                    ], array_filter($session->participants, fn ($p) => in_array($p->status, $goodStatuses)))
+                );
             }
 
             if (!empty($table->data)) {
