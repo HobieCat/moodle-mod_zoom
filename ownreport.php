@@ -217,15 +217,15 @@ if (empty($data['meetings'])) {
     $a = (object) [
         'today' => userdate($lastEndedMeeting, '%d %b %Y %H:%M', false, false),
         'reportlastupdate' => userdate($data['reportlastupdate'], '%d %b %Y %H:%M', false, false),
-        'total' => secondsToHMS(ZOOM_DEFAULT_COURSE_DURATION),
+        'total' => secondsToHMS(zoomDefaultCourseDuration($course->id)),
         'provided' => secondsToHMS($totalDurations['provided']),
-        'max_abscence' => secondsToHMS(ZOOM_MAX_ALLOWED_ABSENCE),
+        'max_abscence' => secondsToHMS(zoomDefaultAllowedAbsence($course->id)),
         'user' => secondsToHMS($totalDurations['user']),
         'user_absence' => secondsToHMS($totalDurations['provided'] - $totalDurations['user'] - $totalDurations['absencesubtract']),
     ];
 
-    echo html_writer::div(get_string('ownreportdatawarning', 'mod_zoom'), 'alert alert-warning');
-    echo html_writer::div(get_string('ownreportsummary', 'mod_zoom', $a), 'alert alert-success');
+    echo html_writer::div(get_string('ownreportdatawarning' . (isSefa($course->id) ? '_sefa' : ''), 'mod_zoom'), 'alert alert-warning');
+    echo html_writer::div(get_string('ownreportsummary' . (isSefa($course->id) ? '_sefa' : ''), 'mod_zoom', $a), 'alert alert-success');
 
     // output details info, with cards and tables
     foreach ($detailsHtml as $detail) {
