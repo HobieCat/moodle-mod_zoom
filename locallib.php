@@ -120,9 +120,12 @@ define('ZOOM_REGISTRATION_OFF', 2);
 // Meeting SDK for web version.
 // see: https://developers.zoom.us/docs/meeting-sdk/minimum-version/
 define('ZOOM_MEETING_SDK_WEB_VERSION', '3.1.6');
-// custom constants
+// custom constants, defaults for CoA courses
 define ('ZOOM_DEFAULT_COURSE_DURATION', 691200);  // 192 hours in seconds
 define ('ZOOM_MAX_ALLOWED_ABSENCE', 0.2 * ZOOM_DEFAULT_COURSE_DURATION); // 20%
+// custom constants, defaults for SeFA courses
+define ('ZOOM_SEFA_DEFAULT_COURSE_DURATION', 230400);  // 64 hours in seconds
+define ('ZOOM_SEFA_MAX_ALLOWED_ABSENCE', 1 * ZOOM_SEFA_DEFAULT_COURSE_DURATION); // 100%
 
 /**
  * Terminate the current script with a fatal error.
@@ -1461,7 +1464,7 @@ function get_registrant_tk($zoom) {
  */
 function course_has_zoom(\stdClass $course) {
     // return count(get_all_instances_in_course('zoom', $course)) > 0;
-    return count(get_fast_modinfo($course)->get_instances_of('zoom')) > 0;
+    return ((isCoa($course->id) || isSefa($course->id)) && count(get_fast_modinfo($course)->get_instances_of('zoom')) > 0);
 }
 
 /**
@@ -1509,9 +1512,11 @@ function get_zoom_report_data($courseid, $calcMinutesWith = 'duration', $withNon
         'id,course,name,duration,start_time,end_date_time'
     );
 
-    while ($skipRows--) {
-        reset($meetings);
-        unset($meetings[key($meetings)]);
+    if (isCoa($courseid)) {
+        while ($skipRows--) {
+            reset($meetings);
+            unset($meetings[key($meetings)]);
+        }
     }
 
     // filter out meetings not visibile to the user, if we're bulding an ownreport (i.e. $userid is not false)
@@ -1979,4 +1984,74 @@ function secondsToHMS(int $seconds = 0, $asstring = true, $withseconds = false) 
     } else {
         return $ret;
     }
+}
+
+/**
+ * Gets the default course duration for zoom reports
+ *
+ * @param int $courseid
+ * @return int
+ */
+function zoomDefaultCourseDuration($courseid) {
+    if (isCoa($courseid)) {
+        return ZOOM_DEFAULT_COURSE_DURATION;
+    } elseif (isSefa($courseid)) {
+        return ZOOM_SEFA_DEFAULT_COURSE_DURATION;
+    }
+    return 0;
+}
+
+/**
+ * Gets the default max allowed absence time for zoom reports
+ *
+ * @param int $courseid
+ * @return int
+ */
+function zoomDefaultAllowedAbsence($courseid) {
+    if (isCoa($courseid)) {
+        return ZOOM_MAX_ALLOWED_ABSENCE;
+    } elseif (isSefa($courseid)) {
+        return ZOOM_SEFA_MAX_ALLOWED_ABSENCE;
+    }
+    return zoomDefaultCourseDuration($courseid);
+}
+
+/**
+ * Check if passed courseid is SeFA
+ *
+ * @param int $courseid
+ * @return boolean
+ */
+function isSefa($courseid) {
+    return in_array($courseid, getSefaIds());
+}
+
+/**
+ * Check if passed courseid is CoA
+ *
+ * @param int $courseid
+ * @return boolean
+ */
+function isCoa($courseid) {
+    return in_array($courseid, getCoaIds());
+}
+
+/**
+ * Gets the CoA courses ids
+ *
+ * @return array
+ */
+function getCoaIds() {
+    $config = get_config('local_campus');
+    return array_map('intval', explode(',', $config?->coacourseids ?? ''));
+}
+
+/**
+ * Gets the SeFA courses ids
+ *
+ * @return array
+ */
+function getSefaIds() {
+    $config = get_config('local_campus');
+    return array_map('intval', explode(',', $config?->sefacourseids ?? ''));
 }
