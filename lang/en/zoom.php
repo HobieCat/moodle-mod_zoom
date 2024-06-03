@@ -435,3 +435,4 @@ $string['ownreportdatawarning_sefa'] = 'Video lessons presence data are update e
 $string['lastjoin'] = 'Last able to join';
 $string['lastjoin_desc'] = 'The latest a user can join a scheduled meeting (minutes after end).';
 $string['ownreportsummary_sefa'] = '<p>Total expected lessons duration is <strong>{$a->total}</strong>, provided duration is <strong>{$a->provided}</strong>.</p><p>Up to now you attended for <strong>{$a->user}</strong>.</p>';
+$string['nostartdateincsv'] = 'Cannot find meeting start date in line {$a} of csv file';
