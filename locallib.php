@@ -1820,7 +1820,17 @@ function updateReportFromQOSCSV($filename) {
         $linestr = sprintf("[line %4d]", $currline);
         if ($currline == 2) {
             $meetingID = trim(str_replace(' ', '', $line[0]));
-            $startDate = DateTime::createFromFormat('M d, Y h:i a', $line[6]);
+            // check the first col with a valid date
+            for ($i = 0; $i < count($line); $i++) {
+                $startDate = DateTime::createFromFormat('M d, Y h:i a', $line[$i]);
+                if ($startDate !== false) {
+                    break;
+                }
+            }
+            if ($startDate == false) {
+                throw new moodle_exception('nostartdateincsv', 'mod_zoom', '', $currline);
+            }
+
             $startDate->setTime(0, 0, 0);
             $startDate = DateTimeImmutable::createFromMutable($startDate);
             $tmp = $DB->get_records_select(
