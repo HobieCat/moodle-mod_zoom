@@ -1495,19 +1495,39 @@ function zoom_is_user_visible(int $userid, int $zoomid, int $courseid = null) {
  * @param boolean $withNonMoodle true to include non moodle users in the data. Defaults to false
  * @param int $userid load the report data for the passed userid
  * @param int $skipRows number of meetings to skip, ordered by the meeting with the lowest 'start_time'
+ * @param boolean $withAfterCourse true to include meeting started after the course has ended. Defaults to false
  * @return array data to build the custom zoom report
  */
-function get_zoom_report_data($courseid, $calcMinutesWith = 'duration', $withNonMoodle = false, $userid = false, $skipRows = 1) {
+function get_zoom_report_data($courseid, $calcMinutesWith = 'duration', $withNonMoodle = false, $userid = false, $skipRows = 1, $withAfterCourse = false) {
+
+    /**
+     * @var \moodle_database $DB
+     */
     global $DB;
 
     $goodStatuses = get_report_good_status();
 
     $data = [];
     // Find all meetings for course.
+    $qparams = ['courseid' => $courseid];
+    $extraWhere = '';
+    if (!$withAfterCourse) {
+        $course = $DB->get_record_select(
+            'course',
+            'id=:courseid',
+            ['courseid' => $courseid],
+            'enddate',
+            MUST_EXIST
+        );
+        if ($course->enddate > 0) {
+            $extraWhere = ' AND start_time <= :courseend';
+            $qparams['courseend'] = $course->enddate;
+        }
+    }
     $meetings = $DB->get_records_select(
         'zoom',
-        'course=:courseid',
-        ['courseid' => $courseid],
+        'course=:courseid' . $extraWhere,
+        $qparams,
         '`start_time` ASC',
         'id,course,name,duration,start_time,end_date_time'
     );
@@ -1680,6 +1700,10 @@ function get_zoom_report_data($courseid, $calcMinutesWith = 'duration', $withNon
         $reportlastupdate = $tasks->get_last_run_time();
     } else {
         $reportlastupdate = null;
+    }
+
+    if (array_key_exists('courseend', $qparams) && $reportlastupdate > $qparams['courseend']) {
+        $reportlastupdate = $qparams['courseend'];
     }
 
     return [
