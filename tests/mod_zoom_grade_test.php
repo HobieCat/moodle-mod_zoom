@@ -29,7 +29,7 @@ use advanced_testcase;
 /**
  * PHPunit testcase class.
  */
-class mod_zoom_grade_test extends advanced_testcase {
+final class mod_zoom_grade_test extends advanced_testcase {
     /**
      * @var \stdClass Course record.
      */
@@ -57,12 +57,14 @@ class mod_zoom_grade_test extends advanced_testcase {
         global $CFG;
         require_once($CFG->dirroot . '/mod/zoom/lib.php');
         require_once($CFG->dirroot . '/mod/zoom/locallib.php');
+        parent::setUpBeforeClass();
     }
 
     /**
      * Setup before every test.
      */
     public function setUp(): void {
+        parent::setUp();
         $this->resetAfterTest();
         $this->setAdminUser();
 

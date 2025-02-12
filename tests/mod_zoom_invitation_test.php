@@ -34,19 +34,21 @@ use moodle_url;
  * PHPunit testcase class for invitations.
  * @covers \mod_zoom\invitation
  */
-class mod_zoom_invitation_test extends advanced_testcase {
+final class mod_zoom_invitation_test extends advanced_testcase {
     /**
      * Setup to ensure that fixtures are loaded.
      */
     public static function setUpBeforeClass(): void {
         global $CFG;
         require_once($CFG->libdir . '/accesslib.php');
+        parent::setUpBeforeClass();
     }
 
     /**
      * Run before every test.
      */
     protected function setUp(): void {
+        parent::setUp();
         set_config('invitationregexenabled', 1, 'zoom');
     }
 

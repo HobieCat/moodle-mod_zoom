@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/zoom/db" VERSION="2024010301" COMMENT="Zoom module"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+<XMLDB PATH="mod/zoom/db" VERSION="20240724" COMMENT="Zoom module"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
   <TABLES>
     <TABLE NAME="zoom" COMMENT="Zoom meetings and webinars">
@@ -11,6 +11,7 @@
         <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="false" SEQUENCE="false" COMMENT="Format of description field"/>
         <FIELD NAME="grade" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Maximum grade (points possible) for this activity. Negative value indicates a scale being used."/>
+        <FIELD NAME="grading_method" TYPE="char" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Add the grading method by entering the meeting or according the attendance duration."/>
         <FIELD NAME="meeting_id" TYPE="int" LENGTH="15" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="join_url" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="created_at" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="ISO datetime format"/>
@@ -128,7 +129,7 @@
         <FIELD NAME="name" TYPE="char" LENGTH="300" NOTNULL="true" SEQUENCE="false" COMMENT="Recording topic. Max of 300 characters."/>
         <FIELD NAME="externalurl" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Link to view the recording."/>
         <FIELD NAME="passcode" TYPE="char" LENGTH="30" NOTNULL="false" SEQUENCE="false" COMMENT="Passcode to access the recording."/>
-        <FIELD NAME="recordingtype" TYPE="char" LENGTH="30" NOTNULL="true" SEQUENCE="false" COMMENT="Type of recording."/>
+        <FIELD NAME="recordingtype" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false" COMMENT="Type of recording."/>
         <FIELD NAME="recordingstart" TYPE="int" LENGTH="12" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="showrecording" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="12" NOTNULL="false" SEQUENCE="false" COMMENT="Timestamp when the record was created."/>

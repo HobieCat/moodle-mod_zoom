@@ -21,6 +21,7 @@
  * @copyright  2015 UC Regents
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
 require(__DIR__ . '/../../config.php');
 require_once(__DIR__ . '/lib.php');
 require_once(__DIR__ . '/locallib.php');
@@ -67,7 +68,7 @@ if (!empty($sessions)) {
         $row[] = $meet['topic'];
         $row[] = $meet['starttime'];
         $row[] = $meet['endtime'];
-        $row[] = $meet['duration'];
+        $row[] = format_time($meet['duration']);
 
         if ($meet['count'] > 0) {
             if ($maskparticipantdata) {

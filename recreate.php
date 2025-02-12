@@ -21,6 +21,7 @@
  * @copyright  2017 UC Regents
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
 require(__DIR__ . '/../../config.php');
 require_once(__DIR__ . '/lib.php');
 require_once(__DIR__ . '/locallib.php');
@@ -48,7 +49,7 @@ foreach ($trackingfields as $trackingfield) {
 }
 
 // Set the current zoom table entry to use the new meeting (meeting_id/etc).
-$response = zoom_webservice()->create_meeting($zoom);
+$response = zoom_webservice()->create_meeting($zoom, $cm->id);
 $zoom = populate_zoom_from_response($zoom, $response);
 $zoom->exists_on_zoom = ZOOM_MEETING_EXISTS;
 $zoom->timemodified = time();

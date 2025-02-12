@@ -179,7 +179,8 @@ class mod_zoom_mod_form extends moodleform_mod {
         $this->standard_intro_elements();
 
         // Adding the "schedule" fieldset, where all settings relating to date and time are shown.
-        $mform->addElement('header', 'general', get_string('schedule', 'mod_zoom'));
+        $mform->addElement('header', 'schedule', get_string('schedule', 'mod_zoom'));
+        $mform->setExpanded('schedule');
 
         // Add date/time. Validation in validation().
         $starttimeoptions = [
@@ -463,7 +464,10 @@ class mod_zoom_mod_form extends moodleform_mod {
         // Getting Course participants.
         $courseparticipants = [];
         foreach ($participants as $participant) {
-            $courseparticipants[] = ['participantid' => $participant->id, 'participantemail' => $participant->email];
+            $courseparticipants[] = [
+                'participantid' => $participant->id,
+                'participantname' => fullname($participant) . ' <' . $participant->email . '>',
+            ];
         }
 
         // Getting Course groups.
@@ -503,7 +507,8 @@ class mod_zoom_mod_form extends moodleform_mod {
         $mform->setType('roomsgroups', PARAM_RAW);
 
         // Adding the "security" fieldset, where all settings relating to securing and protecting the meeting are shown.
-        $mform->addElement('header', 'general', get_string('security', 'mod_zoom'));
+        $mform->addElement('header', 'security', get_string('security', 'mod_zoom'));
+        $mform->setExpanded('security');
 
         // Deals with password manager issues.
         if (isset($this->current->password)) {
@@ -641,7 +646,8 @@ class mod_zoom_mod_form extends moodleform_mod {
         $mform->addHelpButton('show_security', 'showsecurity', 'zoom');
 
         // Adding the "media" fieldset, where all settings relating to media streams in the meeting are shown.
-        $mform->addElement('header', 'general', get_string('media', 'mod_zoom'));
+        $mform->addElement('header', 'media', get_string('media', 'mod_zoom'));
+        $mform->setExpanded('media');
 
         // Add host/participants video options.
         $mform->addGroup([
@@ -733,7 +739,8 @@ class mod_zoom_mod_form extends moodleform_mod {
         $showalternativehosts = ($config->showalternativehosts != ZOOM_ALTERNATIVEHOSTS_DISABLE);
         if ($showschedulingprivilege || $showalternativehosts) {
             // Adding the "host" fieldset, where all settings relating to defining the meeting host are shown.
-            $mform->addElement('header', 'general', get_string('host', 'mod_zoom'));
+            $mform->addElement('header', 'host', get_string('host', 'mod_zoom'));
+            $mform->setExpanded('host');
 
             // Supplementary feature: Alternative hosts.
             // Only show if the admin did not disable this feature completely.
@@ -812,7 +819,7 @@ class mod_zoom_mod_form extends moodleform_mod {
 
         // Adding option for Recording Visiblity by default.
         if (!empty($config->viewrecordings)) {
-            $mform->addElement('header', 'general', get_string('recording', 'mod_zoom'));
+            $mform->addElement('header', 'recording', get_string('recording', 'mod_zoom'));
             $mform->addElement(
                 'advcheckbox',
                 'recordings_visible_default',
@@ -841,6 +848,26 @@ class mod_zoom_mod_form extends moodleform_mod {
 
         // Add standard buttons, common to all modules.
         $this->add_action_buttons();
+    }
+
+    /**
+     * Add standard_grading_coursemodule_elements with grading for field.
+     * @return void
+     */
+    public function standard_grading_coursemodule_elements() {
+        parent::standard_grading_coursemodule_elements();
+        $mform = $this->_form;
+        $itemnumber = 0;
+        $component = "mod_{$this->_modname}";
+        $gradefieldname = \core_grades\component_gradeitems::get_field_name_for_itemnumber($component, $itemnumber, 'grade');
+        $options = [
+            'entry' => get_string('gradingentry', 'mod_zoom'), // All credit upon entry.
+            'period' => get_string('gradingperiod', 'mod_zoom'), // Credit according to attend duration.
+        ];
+        $mform->addElement('select', 'grading_method', get_string('gradingmethod', 'mod_zoom'), $options);
+        $mform->setDefault('grading_method', get_config('zoom', 'gradingmethod'));
+        $mform->addHelpButton('grading_method', 'gradingmethod', 'zoom');
+        $mform->hideIf('grading_method', "{$gradefieldname}[modgrade_type]", 'eq', 'none');
     }
 
     /**
@@ -1183,6 +1210,15 @@ class mod_zoom_mod_form extends moodleform_mod {
                 if ($data['end_date_time'] < $data['start_time']) {
                     $errors['radioenddate'] = get_string('err_end_date_before_start', 'zoom');
                 }
+            }
+        }
+
+        // Validation for registration required functionality.
+        if ($data['registration'] != ZOOM_REGISTRATION_OFF) {
+            // Recurring meeting validation already handled by hiding registration option where required.
+            // Check licensing of the user.
+            if (!zoom_webservice()->is_user_permitted_to_require_registration()) {
+                $errors['registration'] = get_string('err_registration', 'mod_zoom');
             }
         }
 

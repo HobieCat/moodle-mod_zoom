@@ -58,14 +58,16 @@ class restore_activity_structure_step extends \restore_activity_structure_step {
     protected function process_zoom($data) {
         global $DB;
 
-        $data = (object)$data;
+        $data = (object) $data;
 
         // Update start_time before attempting to create a new meeting.
         $data->start_time = $this->apply_date_offset($data->start_time);
 
         // Either create a new meeting or set meeting as expired.
         try {
-            $updateddata = zoom_webservice()->create_meeting($data);
+            // FIXME: Do we provide course context? That won't have the right activity names etc.
+            $cmid = null;
+            $updateddata = zoom_webservice()->create_meeting($data, $cmid);
             $data = populate_zoom_from_response($data, $updateddata);
             $data->exists_on_zoom = ZOOM_MEETING_EXISTS;
         } catch (moodle_exception $e) {
